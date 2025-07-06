@@ -1,0 +1,13 @@
+# MySQL Database Configuration
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_mysql_password
+DB_NAME=pointsfam
+DB_PORT=3306
+
+# Session Configuration
+SESSION_SECRET=your-secret-key-here
+
+# Application Configuration
+PORT=3000
+NODE_ENV=development 

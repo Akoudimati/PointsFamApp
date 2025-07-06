@@ -1,0 +1,1372 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - PointsFam</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/light-theme.css" id="theme-stylesheet">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="alternate icon" href="/favicon.ico" type="image/x-icon">
+</head>
+<body class="dashboard-page">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-star me-2"></i>
+                PointsFam
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3" id="user-info">
+                    <i class="fas fa-user me-1"></i>
+                    <span id="user-name">Laden...</span>
+                </span>
+                <button class="btn btn-outline-light btn-sm me-2" id="theme-toggle">
+                    <i class="fas fa-moon" id="theme-icon"></i>
+                </button>
+                <button class="btn btn-outline-light btn-sm" id="logout-btn">
+                    <i class="fas fa-sign-out-alt me-1"></i>
+                    Uitloggen
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4">
+        <div id="alert-container"></div>
+        <div id="loading-container" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Laden...</span>
+            </div>
+            <p class="mt-3">Dashboard wordt geladen...</p>
+        </div>
+        
+        <!-- Parent Dashboard -->
+        <div id="parent-dashboard" class="d-none">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h2 class="text-primary">
+                        <i class="fas fa-home me-2"></i>
+                        Ouder Dashboard
+                    </h2>
+                    <p class="text-muted">Beheer taken, bekijk voortgang en keur voltooide taken goed.</p>
+                </div>
+            </div>
+
+            <!-- Family Overview -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-users me-2"></i>
+                                Gezinsoverzicht
+                            </h5>
+                            <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                                <i class="fas fa-user-plus me-1"></i>
+                                Gebruiker Toevoegen
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="row" id="family-members">
+                                <!-- Family members will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Approvals -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-clock me-2"></i>
+                                Wachtende Goedkeuringen
+                            </h5>
+                            <span class="badge bg-warning" id="pending-count">0</span>
+                        </div>
+                        <div class="card-body">
+                            <div id="pending-tasks">
+                                <!-- Pending tasks will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Open Tasks for Assignment -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-tasks me-2"></i>
+                                Open Taken voor Toewijzing
+                            </h5>
+                            <span class="badge bg-info" id="open-tasks-count">0</span>
+                        </div>
+                        <div class="card-body">
+                            <div id="open-tasks">
+                                <!-- Open tasks will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-plus me-2"></i>
+                                Nieuwe Taak
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="new-task-form">
+                                <div class="mb-3">
+                                    <label for="task-name" class="form-label">Taak Naam</label>
+                                    <input type="text" class="form-control" id="task-name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="task-description" class="form-label">Beschrijving</label>
+                                    <textarea class="form-control" id="task-description" rows="2"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="task-points" class="form-label">Punten</label>
+                                    <input type="number" class="form-control" id="task-points" min="1" max="100" required>
+                                </div>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-plus me-2"></i>
+                                    Taak Aanmaken
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-gift me-2"></i>
+                                Bonuspunten
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="bonus-points-form">
+                                <div class="mb-3">
+                                    <label for="bonus-child" class="form-label">Kind</label>
+                                    <select class="form-select" id="bonus-child" required>
+                                        <option value="">Selecteer kind...</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="bonus-points" class="form-label">Punten</label>
+                                    <input type="number" class="form-control" id="bonus-points" min="1" max="100" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="bonus-reason" class="form-label">Reden</label>
+                                    <input type="text" class="form-control" id="bonus-reason" required>
+                                </div>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-gift me-2"></i>
+                                    Bonuspunten Geven
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Child Dashboard -->
+        <div id="child-dashboard" class="d-none">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h2 class="text-primary">
+                        <i class="fas fa-child me-2"></i>
+                        Kind Dashboard
+                    </h2>
+                    <p class="text-muted">Bekijk je taken, voortgang en punten.</p>
+                </div>
+            </div>
+
+            <!-- Points Overview -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-primary" id="user-points">0</h3>
+                            <p class="text-muted mb-0">Mijn Punten</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-success" id="completed-tasks">0</h3>
+                            <p class="text-muted mb-0">Voltooide Taken</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h3 class="text-warning" id="pending-tasks">0</h3>
+                            <p class="text-muted mb-0">Wachtende Taken</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- My Tasks -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-tasks me-2"></i>
+                                Mijn Taken
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="child-tasks">
+                                <!-- Child tasks will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Family Ranking -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-trophy me-2"></i>
+                                Gezinsranglijst
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="family-ranking">
+                                <!-- Family ranking will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-gift me-2"></i>
+                                Beloningen
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="rewards-list">
+                                <!-- Rewards will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reject Task Modal -->
+    <div class="modal fade" id="rejectTaskModal" tabindex="-1" aria-labelledby="rejectTaskModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="rejectTaskModalLabel">
+                        <i class="fas fa-times-circle text-danger me-2"></i>
+                        Taak Weigeren
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted mb-3">Waarom wil je deze taak niet uitvoeren?</p>
+                    <div class="mb-3">
+                        <label for="reject-reason" class="form-label">Reden <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="reject-reason" rows="3" placeholder="Bijvoorbeeld: Ik heb nu geen tijd, ik voel me niet lekker, ik heb andere plannen..." required></textarea>
+                        <div class="form-text">Geef een eerlijke uitleg zodat je ouders het kunnen begrijpen.</div>
+                    </div>
+                    <input type="hidden" id="reject-assignment-id" value="">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Annuleren
+                    </button>
+                    <button type="button" class="btn btn-danger" onclick="submitTaskRejection()">
+                        <i class="fas fa-times me-2"></i>
+                        Taak Weigeren
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/theme-switcher.js"></script>
+    <script>
+        let currentUser = null;
+        let dashboardData = null;
+
+        // Initialize dashboard
+        async function initDashboard() {
+            try {
+                // Check if user is logged in
+                const userResponse = await fetch('/api/user');
+                if (!userResponse.ok) {
+                    window.location.href = '/login';
+                    return;
+                }
+
+                const userData = await userResponse.json();
+                currentUser = userData.user;
+                
+                // Update user info in navbar
+                document.getElementById('user-name').textContent = currentUser.firstName + ' ' + currentUser.lastName;
+
+                // Load dashboard data
+                const dashboardResponse = await fetch('/api/dashboard');
+                if (!dashboardResponse.ok) {
+                    throw new Error('Failed to load dashboard data');
+                }
+
+                dashboardData = await dashboardResponse.json();
+                
+                // Hide loading and show appropriate dashboard
+                document.getElementById('loading-container').classList.add('d-none');
+                
+                if (dashboardData.type === 'parent') {
+                    showParentDashboard();
+                } else {
+                    showChildDashboard();
+                }
+            } catch (error) {
+                console.error('Dashboard initialization error:', error);
+                showAlert('Er is een fout opgetreden bij het laden van het dashboard.', 'danger');
+            }
+        }
+
+        // Show parent dashboard
+        function showParentDashboard() {
+            document.getElementById('parent-dashboard').classList.remove('d-none');
+            
+            // Populate family members
+            const familyMembersContainer = document.getElementById('family-members');
+            familyMembersContainer.innerHTML = '';
+            
+            dashboardData.familyMembers.forEach(member => {
+                const memberCard = document.createElement('div');
+                memberCard.className = 'col-md-4 mb-3';
+                
+                const roleIcon = member.role === 'parent' ? 'fas fa-user-tie' : 'fas fa-child';
+                const roleBadge = member.role === 'parent' ? 'bg-info' : 'bg-success';
+                const roleText = member.role === 'parent' ? 'Ouder' : 'Kind';
+                
+                // Management buttons (only for non-current users)
+                const managementButtons = member.id !== currentUser.id ? `
+                    <div class="mt-2">
+                        <button class="btn btn-outline-primary btn-sm me-1" onclick="editUser(${member.id}, '${member.first_name}', '${member.last_name}', '${member.username}', '${member.role}')">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="deleteUser(${member.id}, '${member.first_name}', '${member.last_name}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                ` : '';
+                
+                memberCard.innerHTML = `
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <div class="mb-2">
+                                <i class="${roleIcon} fa-2x text-muted"></i>
+                            </div>
+                            <h5 class="card-title">${member.first_name} ${member.last_name}</h5>
+                            <p class="card-text">
+                                <span class="badge ${roleBadge}">${roleText}</span>
+                                ${member.role === 'child' ? `<br><span class="badge bg-primary mt-1">${member.points} punten</span>` : ''}
+                            </p>
+                            ${member.role === 'child' ? `
+                                <small class="text-muted">
+                                    ${member.completed_tasks} voltooid | ${member.pending_tasks} wachtend
+                                </small>
+                            ` : ''}
+                            ${managementButtons}
+                        </div>
+                    </div>
+                `;
+                familyMembersContainer.appendChild(memberCard);
+                
+                // Add children to bonus points dropdown
+                if (member.role === 'child') {
+                    const option = document.createElement('option');
+                    option.value = member.id;
+                    option.textContent = member.first_name + ' ' + member.last_name;
+                    document.getElementById('bonus-child').appendChild(option);
+                }
+            });
+
+            // Populate pending tasks
+            const pendingTasksContainer = document.getElementById('pending-tasks');
+            const pendingCount = document.getElementById('pending-count');
+            
+            if (dashboardData.pendingTasks.length === 0) {
+                pendingTasksContainer.innerHTML = '<p class="text-muted">Geen wachtende goedkeuringen.</p>';
+                pendingCount.textContent = '0';
+            } else {
+                pendingCount.textContent = dashboardData.pendingTasks.length;
+                pendingTasksContainer.innerHTML = '';
+                
+                dashboardData.pendingTasks.forEach(task => {
+                    const taskCard = document.createElement('div');
+                    taskCard.className = 'card mb-3';
+                    taskCard.innerHTML = `
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <h6 class="card-title mb-1">${task.name}</h6>
+                                    <p class="card-text text-muted mb-0">
+                                        Door: ${task.first_name} ${task.last_name}
+                                    </p>
+                                    <small class="text-muted">
+                                        Voltooid: ${new Date(task.completed_at).toLocaleString('nl-NL')}
+                                    </small>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <span class="badge bg-warning">${task.points} punten</span>
+                                </div>
+                                <div class="col-md-3 text-end">
+                                    <button class="btn btn-success btn-sm me-2" onclick="approveTask(${task.assignment_id}, ${task.points})">
+                                        <i class="fas fa-check"></i> Goedkeuren
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" onclick="rejectTask(${task.assignment_id})">
+                                        <i class="fas fa-times"></i> Afwijzen
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    pendingTasksContainer.appendChild(taskCard);
+                });
+            }
+
+            // Populate open tasks for assignment
+            const openTasksContainer = document.getElementById('open-tasks');
+            const openCount = document.getElementById('open-tasks-count');
+            
+            // Get all tasks from the family that are not assigned yet
+            const openTasks = dashboardData.allTasks ? dashboardData.allTasks.filter(task => 
+                task.user_status === 'available' && task.is_active === 1
+            ) : [];
+            
+            if (openTasks.length === 0) {
+                openTasksContainer.innerHTML = '<p class="text-muted">Geen open taken voor toewijzing. Maak nieuwe taken aan om ze toe te wijzen.</p>';
+                openCount.textContent = '0';
+            } else {
+                openCount.textContent = openTasks.length;
+                openTasksContainer.innerHTML = '';
+                
+                openTasks.forEach(task => {
+                    const taskCard = document.createElement('div');
+                    taskCard.className = 'card mb-3';
+                    taskCard.innerHTML = `
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <h6 class="card-title mb-1">${task.name}</h6>
+                                    <p class="card-text text-muted mb-0">
+                                        ${task.description || 'Geen beschrijving'}
+                                    </p>
+                                    <small class="text-muted">Categorie: ${task.category}</small>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <span class="badge bg-info">${task.points} punten</span>
+                                    <br>
+                                    <small class="text-muted">Beschikbaar voor toewijzing</small>
+                                </div>
+                                <div class="col-md-3 text-end">
+                                    <div class="btn-group" role="group">
+                                        <div class="dropdown">
+                                            <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                <i class="fas fa-user-plus"></i> Toewijzen
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li><a class="dropdown-item fw-bold text-success" href="#" onclick="assignTaskToAll(${task.id})">
+                                                    <i class="fas fa-users"></i> Alle kinderen
+                                                </a></li>
+                                                ${dashboardData.familyMembers.filter(m => m.role === 'child').length > 1 ? `
+                                                <li><a class="dropdown-item fw-bold text-primary" href="#" onclick="assignTaskToFirst(${task.id})">
+                                                    <i class="fas fa-user-graduate"></i> Eerste kind
+                                                </a></li>
+                                                <li><a class="dropdown-item fw-bold text-info" href="#" onclick="assignTaskToRest(${task.id})">
+                                                    <i class="fas fa-user-friends"></i> Rest van de kinderen
+                                                </a></li>
+                                                ` : ''}
+                                                <li><hr class="dropdown-divider"></li>
+                                                ${dashboardData.familyMembers.filter(m => m.role === 'child').map((child, index) => 
+                                                    `<li><a class="dropdown-item" href="#" onclick="assignTask(${task.id}, ${child.id}, '${child.first_name} ${child.last_name}')">
+                                                        <i class="fas fa-user"></i> ${child.first_name} ${child.last_name}${index === 0 ? ' (Eerste)' : ''}
+                                                    </a></li>`
+                                                ).join('')}
+                                            </ul>
+                                        </div>
+                                        <button class="btn btn-outline-danger btn-sm" onclick="cancelTask(${task.id}, '${task.name}')" title="Taak annuleren">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    openTasksContainer.appendChild(taskCard);
+                });
+            }
+        }
+
+        // Show child dashboard
+        function showChildDashboard() {
+            document.getElementById('child-dashboard').classList.remove('d-none');
+            
+            // Update points display
+            document.getElementById('user-points').textContent = currentUser.points;
+            
+            // Count task statuses
+            const completedCount = dashboardData.tasks.filter(t => t.status === 'approved').length;
+            const pendingCount = dashboardData.tasks.filter(t => t.status === 'completed').length;
+            
+            document.getElementById('completed-tasks').textContent = completedCount;
+            document.getElementById('pending-tasks').textContent = pendingCount;
+
+            // Populate tasks
+            const tasksContainer = document.getElementById('child-tasks');
+            tasksContainer.innerHTML = '';
+            
+            if (dashboardData.tasks.length === 0) {
+                tasksContainer.innerHTML = '<p class="text-muted">Geen taken beschikbaar.</p>';
+            } else {
+                dashboardData.tasks.forEach(task => {
+                    const taskCard = document.createElement('div');
+                    taskCard.className = 'card mb-3';
+                    
+                    let statusBadge = '';
+                    let actionButton = '';
+                    
+                    // Default to 'assigned' if no status (newly assigned tasks)
+                    const taskStatus = task.status || 'assigned';
+                    
+                    switch (taskStatus) {
+                        case 'assigned':
+                            statusBadge = '<span class="badge bg-info">Nieuwe taak</span>';
+                            actionButton = `<div class="btn-group" role="group">
+                                <button class="btn btn-success btn-sm" onclick="acceptTask(${task.assignment_id})" title="Taak accepteren">
+                                    <i class="fas fa-check"></i> Accepteren
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="rejectTaskChild(${task.assignment_id})" title="Taak weigeren">
+                                    <i class="fas fa-times"></i> Weigeren
+                                </button>
+                            </div>`;
+                            break;
+                        case 'accepted':
+                            statusBadge = '<span class="badge bg-primary">Geaccepteerd</span>';
+                            actionButton = `<button class="btn btn-success btn-sm" onclick="completeTask(${task.assignment_id})">
+                                <i class="fas fa-check"></i> Voltooien
+                            </button>`;
+                            break;
+                        case 'completed':
+                            statusBadge = '<span class="badge bg-warning">Wacht op goedkeuring</span>';
+                            actionButton = '<span class="text-muted">Wacht op goedkeuring...</span>';
+                            break;
+                        case 'approved':
+                            statusBadge = '<span class="badge bg-success">Goedgekeurd</span>';
+                            actionButton = `<span class="text-success">
+                                <i class="fas fa-check-circle"></i> +${task.points_awarded} punten
+                            </span>`;
+                            break;
+                        case 'rejected':
+                            statusBadge = '<span class="badge bg-danger">Afgewezen</span>';
+                            actionButton = '<span class="text-danger">Probeer opnieuw</span>';
+                            break;
+                        case 'declined':
+                            statusBadge = '<span class="badge bg-secondary">Geweigerd</span>';
+                            actionButton = `<div class="text-muted">
+                                <small>Je hebt deze taak geweigerd</small>
+                                ${task.decline_reason ? `<br><small class="text-secondary"><i class="fas fa-comment me-1"></i>${task.decline_reason}</small>` : ''}
+                            </div>`;
+                            break;
+                        default:
+                            // Unknown status, default to assigned (newly assigned tasks)
+                            statusBadge = '<span class="badge bg-info">Nieuwe taak</span>';
+                            actionButton = `<div class="btn-group" role="group">
+                                <button class="btn btn-success btn-sm" onclick="acceptTask(${task.assignment_id})" title="Taak accepteren">
+                                    <i class="fas fa-check"></i> Accepteren
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="rejectTaskChild(${task.assignment_id})" title="Taak weigeren">
+                                    <i class="fas fa-times"></i> Weigeren
+                                </button>
+                            </div>`;
+                            break;
+                    }
+                    
+                    taskCard.innerHTML = `
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <h6 class="card-title mb-1">${task.name}</h6>
+                                    <p class="card-text text-muted mb-0">${task.description || 'Geen beschrijving'}</p>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    ${statusBadge}
+                                    <br>
+                                    <small class="text-muted">${task.points} punten</small>
+                                </div>
+                                <div class="col-md-3 text-end">
+                                    ${actionButton}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    tasksContainer.appendChild(taskCard);
+                });
+            }
+
+            // Populate family ranking
+            const rankingContainer = document.getElementById('family-ranking');
+            rankingContainer.innerHTML = '';
+            
+            const sortedMembers = dashboardData.familyMembers
+                .filter(m => m.role === 'child')
+                .sort((a, b) => b.points - a.points);
+            
+            sortedMembers.forEach((member, index) => {
+                const rankingItem = document.createElement('div');
+                rankingItem.className = 'd-flex justify-content-between align-items-center mb-2';
+                
+                let rankIcon = '';
+                if (index === 0) rankIcon = '<i class="fas fa-trophy text-warning me-2"></i>';
+                else if (index === 1) rankIcon = '<i class="fas fa-medal text-secondary me-2"></i>';
+                else if (index === 2) rankIcon = '<i class="fas fa-award text-warning me-2"></i>';
+                else rankIcon = `<span class="me-2">${index + 1}.</span>`;
+                
+                const isCurrentUser = member.id === currentUser.id;
+                const highlightClass = isCurrentUser ? 'fw-bold text-primary' : '';
+                
+                rankingItem.innerHTML = `
+                    <div class="${highlightClass}">
+                        ${rankIcon}${member.first_name} ${member.last_name}
+                    </div>
+                    <span class="badge bg-primary">${member.points}</span>
+                `;
+                rankingContainer.appendChild(rankingItem);
+            });
+
+            // Populate rewards
+            const rewardsContainer = document.getElementById('rewards-list');
+            rewardsContainer.innerHTML = '';
+            
+            if (dashboardData.rewards.length === 0) {
+                rewardsContainer.innerHTML = '<p class="text-muted">Geen beloningen beschikbaar.</p>';
+            } else {
+                dashboardData.rewards.slice(0, 3).forEach(reward => {
+                    const canAfford = currentUser.points >= reward.points_required;
+                    const rewardItem = document.createElement('div');
+                    rewardItem.className = 'd-flex justify-content-between align-items-center mb-2';
+                    rewardItem.innerHTML = `
+                        <div>
+                            <strong>${reward.name}</strong>
+                            <br>
+                            <small class="text-muted">${reward.points_required} punten</small>
+                        </div>
+                        <button class="btn btn-sm ${canAfford ? 'btn-success' : 'btn-outline-secondary'}" 
+                                ${canAfford ? `onclick="redeemReward(${reward.id})"` : 'disabled'}>
+                            ${canAfford ? 'Inwisselen' : 'Te duur'}
+                        </button>
+                    `;
+                    rewardsContainer.appendChild(rewardItem);
+                });
+            }
+        }
+
+        // Task actions
+        async function acceptTask(assignmentId) {
+            try {
+                const response = await fetch(`/api/assignments/${assignmentId}/accept`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(data.message, 'success');
+                    // Refresh dashboard
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Accept task error:', error);
+                showAlert('Er is een fout opgetreden.', 'danger');
+            }
+        }
+
+        async function rejectTaskChild(assignmentId) {
+            // Reset the modal form
+            document.getElementById('reject-reason').value = '';
+            document.getElementById('reject-assignment-id').value = assignmentId;
+            
+            // Show the reject reason modal
+            const modal = new bootstrap.Modal(document.getElementById('rejectTaskModal'));
+            modal.show();
+            
+            // Focus on the textarea
+            setTimeout(() => {
+                document.getElementById('reject-reason').focus();
+            }, 300);
+        }
+
+        async function submitTaskRejection() {
+            const assignmentId = document.getElementById('reject-assignment-id').value;
+            const reason = document.getElementById('reject-reason').value.trim();
+            
+            if (!reason) {
+                showAlert('Geef een reden op waarom je deze taak wilt weigeren.', 'warning');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/assignments/${assignmentId}/decline`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ reason })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Close modal and reset form
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('rejectTaskModal'));
+                    modal.hide();
+                    document.getElementById('reject-reason').value = '';
+                    
+                    showAlert(data.message, 'info');
+                    // Refresh dashboard
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Reject task error:', error);
+                showAlert('Er is een fout opgetreden.', 'danger');
+            }
+        }
+
+        async function completeTask(assignmentId) {
+            try {
+                const response = await fetch(`/api/assignments/${assignmentId}/complete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(data.message, 'success');
+                    // Refresh dashboard
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Complete task error:', error);
+                showAlert('Er is een fout opgetreden.', 'danger');
+            }
+        }
+
+        async function approveTask(assignmentId, points) {
+            try {
+                const response = await fetch(`/api/assignments/${assignmentId}/approve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ points })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(data.message, 'success');
+                    // Refresh dashboard
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Approve task error:', error);
+                showAlert('Er is een fout opgetreden.', 'danger');
+            }
+        }
+
+        async function rejectTask(assignmentId) {
+            try {
+                const response = await fetch(`/api/assignments/${assignmentId}/reject`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(data.message, 'info');
+                    // Refresh dashboard
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Reject task error:', error);
+                showAlert('Er is een fout opgetreden.', 'danger');
+            }
+        }
+
+        async function assignTask(taskId, userId, childName) {
+            try {
+                const response = await fetch(`/api/tasks/${taskId}/assign`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(`Taak succesvol toegewezen aan ${childName}!`, 'success');
+                    // Refresh dashboard
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Assign task error:', error);
+                showAlert('Er is een fout opgetreden.', 'danger');
+            }
+        }
+
+        async function assignTaskToAll(taskId) {
+            try {
+                const response = await fetch(`/api/tasks/${taskId}/assign-all`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(`Taak succesvol toegewezen aan alle kinderen!`, 'success');
+                    // Refresh dashboard
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Assign task to all error:', error);
+                showAlert('Er is een fout opgetreden.', 'danger');
+            }
+        }
+
+        async function assignTaskToFirst(taskId) {
+            try {
+                const response = await fetch(`/api/tasks/${taskId}/assign-first`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(`Taak succesvol toegewezen aan het eerste kind!`, 'success');
+                    // Refresh dashboard
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Assign task to first error:', error);
+                showAlert('Er is een fout opgetreden.', 'danger');
+            }
+        }
+
+        async function assignTaskToRest(taskId) {
+            try {
+                const response = await fetch(`/api/tasks/${taskId}/assign-rest`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(`Taak succesvol toegewezen aan de rest van de kinderen!`, 'success');
+                    // Refresh dashboard
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Assign task to rest error:', error);
+                showAlert('Er is een fout opgetreden.', 'danger');
+            }
+        }
+
+        async function cancelTask(taskId, taskName) {
+            if (confirm(`Weet je zeker dat je de taak "${taskName}" wilt annuleren?`)) {
+                try {
+                    const response = await fetch(`/api/tasks/${taskId}`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (response.ok) {
+                        showAlert(`Taak "${taskName}" succesvol geannuleerd!`, 'info');
+                        // Refresh dashboard
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showAlert(data.error, 'danger');
+                    }
+                } catch (error) {
+                    console.error('Cancel task error:', error);
+                    showAlert('Er is een fout opgetreden.', 'danger');
+                }
+            }
+        }
+
+        async function redeemReward(rewardId) {
+            try {
+                const response = await fetch(`/api/rewards/${rewardId}/redeem`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(data.message, 'success');
+                    // Refresh dashboard
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Redeem reward error:', error);
+                showAlert('Er is een fout opgetreden.', 'danger');
+            }
+        }
+
+        // Form handlers
+        document.getElementById('new-task-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = {
+                name: document.getElementById('task-name').value,
+                description: document.getElementById('task-description').value,
+                points: parseInt(document.getElementById('task-points').value)
+            };
+            
+            try {
+                const response = await fetch('/api/tasks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(data.message, 'success');
+                    document.getElementById('new-task-form').reset();
+                    // Refresh dashboard to show new task in open tasks
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Create task error:', error);
+                showAlert('Er is een fout opgetreden.', 'danger');
+            }
+        });
+
+        document.getElementById('bonus-points-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const userId = document.getElementById('bonus-child').value;
+            const points = parseInt(document.getElementById('bonus-points').value);
+            const reason = document.getElementById('bonus-reason').value;
+            
+            try {
+                const response = await fetch(`/api/users/${userId}/bonus-points`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ points, reason })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(data.message, 'success');
+                    document.getElementById('bonus-points-form').reset();
+                    // Refresh dashboard
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Bonus points error:', error);
+                showAlert('Er is een fout opgetreden.', 'danger');
+            }
+        });
+
+        // Logout handler
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    window.location.href = '/login';
+                } else {
+                    showAlert('Er is een fout opgetreden bij het uitloggen.', 'danger');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                showAlert('Er is een fout opgetreden bij het uitloggen.', 'danger');
+            }
+        });
+
+        // Utility functions
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alert-container');
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            alertContainer.appendChild(alertDiv);
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                if (alertDiv.parentNode) {
+                    alertDiv.remove();
+                }
+            }, 5000);
+        }
+
+        // Initialize dashboard on page load
+        document.addEventListener('DOMContentLoaded', initDashboard);
+    </script>
+
+    <!-- User Management Modals -->
+    <!-- Add User Modal -->
+    <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addUserModalLabel">
+                        <i class="fas fa-user-plus me-2"></i>
+                        Gebruiker Toevoegen
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-user-form">
+                        <div class="mb-3">
+                            <label for="add-user-role" class="form-label">Rol</label>
+                            <select class="form-select" id="add-user-role" required>
+                                <option value="">Selecteer rol...</option>
+                                <option value="parent">Ouder</option>
+                                <option value="child">Kind</option>
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="add-user-first-name" class="form-label">Voornaam</label>
+                                    <input type="text" class="form-control" id="add-user-first-name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="add-user-last-name" class="form-label">Achternaam</label>
+                                    <input type="text" class="form-control" id="add-user-last-name" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="add-user-username" class="form-label">Gebruikersnaam</label>
+                            <input type="text" class="form-control" id="add-user-username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="add-user-password" class="form-label">Wachtwoord</label>
+                            <input type="password" class="form-control" id="add-user-password" required>
+                            <div class="form-text">Minimaal 6 karakters</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button>
+                    <button type="button" class="btn btn-primary" id="add-user-btn">
+                        <i class="fas fa-user-plus me-2"></i>
+                        Gebruiker Toevoegen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editUserModalLabel">
+                        <i class="fas fa-user-edit me-2"></i>
+                        Gebruiker Bewerken
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-user-form">
+                        <input type="hidden" id="edit-user-id">
+                        <div class="mb-3">
+                            <label for="edit-user-role" class="form-label">Rol</label>
+                            <select class="form-select" id="edit-user-role" required>
+                                <option value="parent">Ouder</option>
+                                <option value="child">Kind</option>
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit-user-first-name" class="form-label">Voornaam</label>
+                                    <input type="text" class="form-control" id="edit-user-first-name" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="edit-user-last-name" class="form-label">Achternaam</label>
+                                    <input type="text" class="form-control" id="edit-user-last-name" required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-user-username" class="form-label">Gebruikersnaam</label>
+                            <input type="text" class="form-control" id="edit-user-username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-user-password" class="form-label">Nieuw Wachtwoord (optioneel)</label>
+                            <input type="password" class="form-control" id="edit-user-password">
+                            <div class="form-text">Laat leeg om wachtwoord ongewijzigd te laten</div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button>
+                    <button type="button" class="btn btn-primary" id="edit-user-btn">
+                        <i class="fas fa-save me-2"></i>
+                        Opslaan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete User Modal -->
+    <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteUserModalLabel">
+                        <i class="fas fa-user-minus me-2"></i>
+                        Gebruiker Verwijderen
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Waarschuwing!</strong> Deze actie kan niet ongedaan worden gemaakt.
+                    </div>
+                    <p>Weet je zeker dat je <strong id="delete-user-name"></strong> wilt verwijderen?</p>
+                    <input type="hidden" id="delete-user-id">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button>
+                    <button type="button" class="btn btn-danger" id="delete-user-btn">
+                        <i class="fas fa-trash me-2"></i>
+                        Verwijderen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // User Management Functions
+        document.getElementById('add-user-btn').addEventListener('click', async () => {
+            const formData = {
+                role: document.getElementById('add-user-role').value,
+                firstName: document.getElementById('add-user-first-name').value,
+                lastName: document.getElementById('add-user-last-name').value,
+                username: document.getElementById('add-user-username').value,
+                password: document.getElementById('add-user-password').value
+            };
+
+            // Validate form
+            if (!formData.role || !formData.firstName || !formData.lastName || !formData.username || !formData.password) {
+                showAlert('Alle velden zijn verplicht.', 'danger');
+                return;
+            }
+
+            if (formData.password.length < 6) {
+                showAlert('Wachtwoord moet minimaal 6 karakters bevatten.', 'danger');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/users', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert(data.message, 'success');
+                    document.getElementById('add-user-form').reset();
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+                    modal.hide();
+                    // Refresh dashboard
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Add user error:', error);
+                showAlert('Er is een fout opgetreden.', 'danger');
+            }
+        });
+
+        document.getElementById('edit-user-btn').addEventListener('click', async () => {
+            const userId = document.getElementById('edit-user-id').value;
+            const formData = {
+                role: document.getElementById('edit-user-role').value,
+                firstName: document.getElementById('edit-user-first-name').value,
+                lastName: document.getElementById('edit-user-last-name').value,
+                username: document.getElementById('edit-user-username').value
+            };
+
+            const password = document.getElementById('edit-user-password').value;
+
+            try {
+                // Update user info
+                const response = await fetch(`/api/users/${userId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Update password if provided
+                    if (password && password.length >= 6) {
+                        const passwordResponse = await fetch(`/api/users/${userId}/password`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ newPassword: password })
+                        });
+
+                        if (!passwordResponse.ok) {
+                            const passwordData = await passwordResponse.json();
+                            showAlert(passwordData.error, 'danger');
+                            return;
+                        }
+                    }
+
+                    showAlert(data.message, 'success');
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
+                    modal.hide();
+                    // Refresh dashboard
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Edit user error:', error);
+                showAlert('Er is een fout opgetreden.', 'danger');
+            }
+        });
+
+        document.getElementById('delete-user-btn').addEventListener('click', async () => {
+            const userId = document.getElementById('delete-user-id').value;
+
+            try {
+                const response = await fetch(`/api/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showAlert(data.message, 'success');
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('deleteUserModal'));
+                    modal.hide();
+                    // Refresh dashboard
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Delete user error:', error);
+                showAlert('Er is een fout opgetreden.', 'danger');
+            }
+        });
+
+        // Functions to open modals
+        function editUser(userId, firstName, lastName, username, role) {
+            document.getElementById('edit-user-id').value = userId;
+            document.getElementById('edit-user-first-name').value = firstName;
+            document.getElementById('edit-user-last-name').value = lastName;
+            document.getElementById('edit-user-username').value = username;
+            document.getElementById('edit-user-role').value = role;
+            document.getElementById('edit-user-password').value = '';
+            
+            const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
+            modal.show();
+        }
+
+        function deleteUser(userId, firstName, lastName) {
+            document.getElementById('delete-user-id').value = userId;
+            document.getElementById('delete-user-name').textContent = `${firstName} ${lastName}`;
+            
+            const modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+            modal.show();
+        }
+    </script>
+</body>
+</html>
