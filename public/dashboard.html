@@ -745,7 +745,10 @@
                 // Hide loading and show appropriate dashboard
                 document.getElementById('loading-container').classList.add('d-none');
                 
-                if (dashboardData.type === 'parent') {
+                console.log('Dashboard data type:', dashboardData.type);
+                console.log('User role:', currentUser.role);
+                
+                if (dashboardData.type === 'parent' || currentUser.role === 'parent') {
                     await showParentDashboard();
                 } else {
                     showChildDashboard();
