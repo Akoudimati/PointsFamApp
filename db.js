@@ -15,48 +15,59 @@ class Database {
         // Create connection pool for better performance
         this.pool = mysql.createPool(dbConfig);
 
-        // Test connection
-        this.testConnection();
+        // Test connection with retries
+        this.testConnectionWithRetry();
     }
 
     getDatabaseConfig() {
-        // If environment variables are set, use them
+        // If environment variables are set, use them (highest priority)
         if (process.env.DB_HOST && process.env.DB_HOST !== 'localhost') {
+            console.log('🔧 Using environment variables for database configuration');
             return {
                 host: process.env.DB_HOST,
                 user: process.env.DB_USER,
                 password: process.env.DB_PASSWORD,
                 database: process.env.DB_NAME || 'pointsfam',
-                port: process.env.DB_PORT || 3306,
+                port: parseInt(process.env.DB_PORT) || 3306,
                 waitForConnections: true,
                 connectionLimit: 10,
                 queueLimit: 0,
                 charset: 'utf8mb4',
                 ssl: {
                     rejectUnauthorized: false
-                }
+                },
+                acquireTimeout: 60000,
+                timeout: 60000,
+                reconnect: true,
+                connectTimeout: 60000
             };
         }
 
-        // If on production but no DB_HOST, use working cloud database
+        // If on production but no DB_HOST, use updated cloud database
         if (process.env.NODE_ENV === 'production' && !process.env.DB_HOST) {
+            console.log('🔧 Using production fallback database');
             return {
-                host: 'roundhouse.proxy.rlwy.net',
+                host: 'autorack.proxy.rlwy.net',
                 user: 'root',
-                password: 'GQRLdYiSYbWRhHzPQTdoFpBtCKKIBUBc',
+                password: 'WGQRLdYiSYbWRhHzPQTdoFpBtCKKIBUBc',
                 database: 'pointsfam',
                 port: 21478,
                 waitForConnections: true,
-                connectionLimit: 10,
+                connectionLimit: 5,
                 queueLimit: 0,
                 charset: 'utf8mb4',
                 ssl: {
                     rejectUnauthorized: false
-                }
+                },
+                acquireTimeout: 60000,
+                timeout: 60000,
+                reconnect: true,
+                connectTimeout: 60000
             };
         }
 
         // Default to localhost for development
+        console.log('🔧 Using localhost database for development');
         return {
             host: 'localhost',
             user: 'root',
@@ -67,8 +78,112 @@ class Database {
             connectionLimit: 10,
             queueLimit: 0,
             charset: 'utf8mb4',
-            ssl: false
+            ssl: false,
+            acquireTimeout: 60000,
+            timeout: 60000,
+            reconnect: true,
+            connectTimeout: 60000
         };
+    }
+
+    async testConnectionWithRetry(maxRetries = 3) {
+        let lastError;
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                console.log(`🔄 Database connection attempt ${attempt}/${maxRetries}`);
+                const connection = await this.pool.getConnection();
+                const dbConfig = this.getDatabaseConfig();
+                console.log(`✅ Connected to MySQL database (${dbConfig.host}:${dbConfig.port})`);
+                connection.release();
+                return; // Success - exit retry loop
+            } catch (err) {
+                lastError = err;
+                console.error(`❌ Database connection attempt ${attempt} failed:`, err.message);
+                
+                if (attempt < maxRetries) {
+                    console.log(`⏳ Retrying in ${attempt * 2} seconds...`);
+                    await new Promise(resolve => setTimeout(resolve, attempt * 2000));
+                }
+            }
+        }
+        
+        // All retry attempts failed
+        console.error('❌ All database connection attempts failed. Trying alternative configurations...');
+        
+        // Try alternative database configurations
+        await this.tryAlternativeConfigurations();
+    }
+
+    async tryAlternativeConfigurations() {
+        const alternativeConfigs = [
+            {
+                name: 'Railway Alternative 1',
+                config: {
+                    host: 'roundhouse.proxy.rlwy.net',
+                    user: 'root',
+                    password: 'GQRLdYiSYbWRhHzPQTdoFpBtCKKIBUBc',
+                    database: 'pointsfam',
+                    port: 21478,
+                    waitForConnections: true,
+                    connectionLimit: 5,
+                    queueLimit: 0,
+                    charset: 'utf8mb4',
+                    ssl: { rejectUnauthorized: false },
+                    acquireTimeout: 60000,
+                    timeout: 60000,
+                    reconnect: true,
+                    connectTimeout: 60000
+                }
+            },
+            {
+                name: 'Railway Alternative 2',
+                config: {
+                    host: 'viaduct.proxy.rlwy.net',
+                    user: 'root',
+                    password: 'GQRLdYiSYbWRhHzPQTdoFpBtCKKIBUBc',
+                    database: 'pointsfam',
+                    port: 21478,
+                    waitForConnections: true,
+                    connectionLimit: 5,
+                    queueLimit: 0,
+                    charset: 'utf8mb4',
+                    ssl: { rejectUnauthorized: false },
+                    acquireTimeout: 60000,
+                    timeout: 60000,
+                    reconnect: true,
+                    connectTimeout: 60000
+                }
+            }
+        ];
+
+        for (const { name, config } of alternativeConfigs) {
+            try {
+                console.log(`🔄 Trying ${name}...`);
+                const testPool = mysql.createPool(config);
+                const connection = await testPool.getConnection();
+                
+                console.log(`✅ Connected with ${name} (${config.host}:${config.port})`);
+                connection.release();
+                
+                // Replace the main pool with the working configuration
+                if (this.pool) {
+                    await this.pool.end();
+                }
+                this.pool = testPool;
+                return;
+            } catch (err) {
+                console.error(`❌ ${name} failed:`, err.message);
+            }
+        }
+        
+        // If we get here, no database connection worked
+        console.error('❌ All database configurations failed. Application will continue but database operations will fail.');
+        console.error('💡 Please set the correct database environment variables:');
+        console.error('   DB_HOST, DB_USER, DB_PASSWORD, DB_NAME, DB_PORT');
+        
+        // Don't throw an error to prevent app crash - let it start without database
+        // Database operations will fail gracefully
     }
 
     async testConnection() {
@@ -79,44 +194,11 @@ class Database {
             connection.release();
         } catch (err) {
             console.error('❌ Database connection error:', err.message);
-            
-            // If localhost fails in production, try fallback cloud database
-            if (process.env.NODE_ENV === 'production' && err.code === 'ECONNREFUSED') {
-                console.log('🔄 Trying fallback cloud database...');
-                try {
-                    await this.initFallbackDatabase();
-                    console.log('✅ Connected to fallback cloud database');
-                } catch (fallbackErr) {
-                    console.error('❌ Fallback database also failed:', fallbackErr.message);
-                    throw fallbackErr;
-                }
-            } else {
-                throw err;
-            }
+            throw err;
         }
     }
 
-    async initFallbackDatabase() {
-        // Create new pool with cloud database
-        this.pool = mysql.createPool({
-            host: 'roundhouse.proxy.rlwy.net',
-            user: 'root',
-            password: 'GQRLdYiSYbWRhHzPQTdoFpBtCKKIBUBc',
-            database: 'pointsfam',
-            port: 21478,
-            waitForConnections: true,
-            connectionLimit: 10,
-            queueLimit: 0,
-            charset: 'utf8mb4',
-            ssl: {
-                rejectUnauthorized: false
-            }
-        });
-        
-        // Test the fallback connection
-        const connection = await this.pool.getConnection();
-        connection.release();
-    }
+
 
     // ==============================================
     // CONNECTION METHODS
@@ -320,31 +402,104 @@ class Database {
 
     async query(sql, params = []) {
         try {
+            if (!this.pool) {
+                throw new Error('Database connection not available');
+            }
             const [rows] = await this.pool.execute(sql, params);
             return rows;
         } catch (err) {
             console.error('Query error:', err);
+            
+            // If connection is lost, try to reconnect
+            if (err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ECONNRESET') {
+                console.log('🔄 Attempting to reconnect to database...');
+                await this.handleConnectionLoss();
+                // Retry the query once
+                try {
+                    const [rows] = await this.pool.execute(sql, params);
+                    return rows;
+                } catch (retryErr) {
+                    console.error('Database query retry failed:', retryErr);
+                    throw retryErr;
+                }
+            }
             throw err;
         }
     }
 
     async queryOne(sql, params = []) {
         try {
+            if (!this.pool) {
+                throw new Error('Database connection not available');
+            }
             const [rows] = await this.pool.execute(sql, params);
             return rows[0] || null;
         } catch (err) {
             console.error('QueryOne error:', err);
+            
+            // If connection is lost, try to reconnect
+            if (err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ECONNRESET') {
+                console.log('🔄 Attempting to reconnect to database...');
+                await this.handleConnectionLoss();
+                // Retry the query once
+                try {
+                    const [rows] = await this.pool.execute(sql, params);
+                    return rows[0] || null;
+                } catch (retryErr) {
+                    console.error('Database query retry failed:', retryErr);
+                    throw retryErr;
+                }
+            }
             throw err;
         }
     }
 
     async execute(sql, params = []) {
         try {
+            if (!this.pool) {
+                throw new Error('Database connection not available');
+            }
             const [result] = await this.pool.execute(sql, params);
             return result;
         } catch (err) {
             console.error('Execute error:', err);
+            
+            // If connection is lost, try to reconnect
+            if (err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ECONNRESET') {
+                console.log('🔄 Attempting to reconnect to database...');
+                await this.handleConnectionLoss();
+                // Retry the query once
+                try {
+                    const [result] = await this.pool.execute(sql, params);
+                    return result;
+                } catch (retryErr) {
+                    console.error('Database execute retry failed:', retryErr);
+                    throw retryErr;
+                }
+            }
             throw err;
+        }
+    }
+
+    async handleConnectionLoss() {
+        try {
+            // Close existing pool
+            if (this.pool) {
+                await this.pool.end();
+            }
+            
+            // Recreate connection pool
+            const dbConfig = this.getDatabaseConfig();
+            this.pool = mysql.createPool(dbConfig);
+            
+            // Test the new connection
+            const connection = await this.pool.getConnection();
+            connection.release();
+            console.log('✅ Database reconnection successful');
+        } catch (err) {
+            console.error('❌ Database reconnection failed:', err.message);
+            // Try alternative configurations
+            await this.tryAlternativeConfigurations();
         }
     }
 
