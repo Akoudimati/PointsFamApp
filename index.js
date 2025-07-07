@@ -14,7 +14,7 @@ const db = new Database();
 
 // Initialize Express app
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Multer configuration for file uploads
 const storage = multer.diskStorage({
@@ -1222,23 +1222,53 @@ app.use((req, res) => {
     res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
 });
 
-// Start server
-app.listen(PORT, () => {
+// Start server with proper error handling
+const server = app.listen(PORT, async () => {
     console.log(` PointsFam server running on http://localhost:${PORT}`);
-    console.log(` Database: MySQL (pointsfam)`);
+    console.log(` Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(` Database: MySQL (${process.env.DB_NAME || 'pointsfam'})`);
     console.log(` Test Parent Login: username=parent1, password=password123`);
     console.log(` Test Child Login: username=child1, password=password123`);
 });
 
-// Graceful shutdown
-process.on('SIGINT', () => {
-    console.log('\n🛑 Shutting down server...');
-    db.close();
-    process.exit(0);
+// Handle server errors
+server.on('error', (error) => {
+    console.error('❌ Server error:', error);
+    if (error.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${PORT} is already in use`);
+    }
+    process.exit(1);
 });
 
-process.on('SIGTERM', () => {
+// Graceful shutdown
+const gracefulShutdown = async () => {
     console.log('\n🛑 Shutting down server...');
-    db.close();
-    process.exit(0);
+    
+    // Close server
+    server.close(() => {
+        console.log('✅ Server closed');
+        
+        // Close database connection
+        db.close().then(() => {
+            console.log('✅ Database connection closed');
+            process.exit(0);
+        }).catch((err) => {
+            console.error('❌ Error closing database:', err);
+            process.exit(1);
+        });
+    });
+};
+
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (err) => {
+    console.error('❌ Uncaught Exception:', err);
+    process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+    process.exit(1);
 });

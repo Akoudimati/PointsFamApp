@@ -11,15 +11,19 @@ class Database {
     init() {
         // Create connection pool for better performance
         this.pool = mysql.createPool({
-            host: 'localhost',
-            user: 'root',
-            password: '',
-            database: 'pointsfam',
-            port: 3306,
+            host: process.env.DB_HOST || 'localhost',
+            user: process.env.DB_USER || 'root',
+            password: process.env.DB_PASSWORD || '',
+            database: process.env.DB_NAME || 'pointsfam',
+            port: process.env.DB_PORT || 3306,
             waitForConnections: true,
             connectionLimit: 10,
             queueLimit: 0,
-            charset: 'utf8mb4'
+            charset: 'utf8mb4',
+            // SSL configuration for production
+            ssl: process.env.NODE_ENV === 'production' ? {
+                rejectUnauthorized: false
+            } : false
         });
 
         // Test connection
