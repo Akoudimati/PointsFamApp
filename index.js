@@ -180,7 +180,73 @@ app.get('/api/user', requireAuth, (req, res) => {
     res.json({ user: req.session.user });
 });
 
-// Dashboard data endpoint - REMOVED: Duplicate endpoint without type field
+// Messaging endpoints
+app.get('/api/conversations', requireAuth, async (req, res) => {
+    try {
+        const conversations = await db.getConversationsForUser(req.session.user.id);
+        res.json({ conversations });
+    } catch (error) {
+        console.error('Error fetching conversations:', error);
+        res.status(500).json({ error: 'Er is een fout opgetreden bij het laden van gesprekken.' });
+    }
+});
+
+app.get('/api/conversations/:id', requireAuth, async (req, res) => {
+    try {
+        const conversation = await db.getConversationById(req.params.id, req.session.user.id);
+        if (!conversation) {
+            return res.status(404).json({ error: 'Gesprek niet gevonden.' });
+        }
+        
+        const participants = await db.getConversationParticipants(req.params.id);
+        res.json({ conversation, participants });
+    } catch (error) {
+        console.error('Error fetching conversation:', error);
+        res.status(500).json({ error: 'Er is een fout opgetreden bij het laden van het gesprek.' });
+    }
+});
+
+app.get('/api/conversations/:id/messages', requireAuth, async (req, res) => {
+    try {
+        const limit = Math.min(parseInt(req.query.limit) || 50, 100);
+        const offset = parseInt(req.query.offset) || 0;
+        
+        console.log('Loading messages:', { conversationId: req.params.id, limit, offset, userId: req.session.user.id });
+        
+        const messages = await db.getMessages(req.params.id, limit, offset);
+        const messageCount = messages.length;
+        
+        console.log('Messages query successful:', { conversationId: req.params.id, limit, offset, messageCount });
+        
+        res.json({ 
+            messages,
+            pagination: {
+                limit,
+                offset,
+                total: messageCount
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching messages:', error);
+        res.status(500).json({ error: 'Er is een fout opgetreden bij het laden van berichten.' });
+    }
+});
+
+app.post('/api/conversations/:id/messages', requireAuth, async (req, res) => {
+    try {
+        const messageData = {
+            conversation_id: req.params.id,
+            sender_id: req.session.user.id,
+            content: req.body.content
+        };
+        
+        const message = await db.sendMessage(messageData);
+        res.json({ success: true, message });
+    } catch (error) {
+        console.error('Error sending message:', error);
+        res.status(500).json({ error: 'Er is een fout opgetreden bij het verzenden van je bericht.' });
+    }
+});
 
 // Session debug endpoint (remove in production)
 app.get('/api/debug/session', (req, res) => {
@@ -1221,6 +1287,266 @@ app.get('/api/standard-tasks', requireParent, async (req, res) => {
     }
 });
 
+// ==============================================
+// MESSAGING API ENDPOINTS
+// ==============================================
+
+// Get all conversations for the current user
+app.get('/api/conversations', requireAuth, async (req, res) => {
+    try {
+        const user = req.session.user;
+        const { family_only } = req.query;
+        
+        let conversations;
+        if (family_only === 'true') {
+            conversations = await db.getFamilyConversationsForUser(user.id);
+        } else {
+            conversations = await db.getConversationsForUser(user.id);
+        }
+        
+        res.json({ success: true, conversations });
+    } catch (error) {
+        console.error('Get conversations error:', error);
+        res.status(500).json({ error: 'Error loading conversations' });
+    }
+});
+
+// Get family members for messaging
+app.get('/api/family/members', requireAuth, async (req, res) => {
+    try {
+        const user = req.session.user;
+        const members = await db.getFamilyMembersForMessaging(user.id);
+        res.json({ success: true, family_members: members, family_name: user.familyName });
+    } catch (error) {
+        console.error('Get family members error:', error);
+        res.status(500).json({ error: 'Error loading family members' });
+    }
+});
+
+// Get a specific conversation
+app.get('/api/conversations/:conversationId', requireAuth, async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const user = req.session.user;
+        
+        const conversation = await db.getConversationById(conversationId, user.id);
+        if (!conversation) {
+            return res.status(404).json({ error: 'Conversation not found' });
+        }
+        
+        const participants = await db.getConversationParticipants(conversationId);
+        res.json({ success: true, conversation, participants });
+    } catch (error) {
+        console.error('Get conversation error:', error);
+        res.status(500).json({ error: 'Error loading conversation' });
+    }
+});
+
+// Get messages for a conversation
+app.get('/api/conversations/:conversationId/messages', requireAuth, async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const limit = Math.min(parseInt(req.query.limit) || 50, 100); // Cap at 100 messages
+        const offset = parseInt(req.query.offset) || 0;
+        const user = req.session.user;
+
+        console.log('Loading messages:', { conversationId, limit, offset, userId: user.id });
+        
+        // Check if user is participant in conversation
+        const conversation = await db.getConversationById(conversationId, user.id);
+        if (!conversation) {
+            console.log('Access denied - User not in conversation:', { userId: user.id, conversationId });
+            return res.status(403).json({ 
+                error: 'Je hebt geen toegang tot dit gesprek',
+                code: 'ACCESS_DENIED'
+            });
+        }
+        
+        const messages = await db.getMessages(conversationId, limit, offset);
+        console.log(`Retrieved ${messages.length} messages for conversation ${conversationId}`);
+        
+        res.json({ 
+            messages,
+            pagination: {
+                limit,
+                offset,
+                total: messages.length
+            }
+        });
+    } catch (error) {
+        console.error('Get messages error:', error);
+        res.status(500).json({ 
+            error: 'Er is een fout opgetreden bij het laden van berichten',
+            code: 'LOAD_ERROR',
+            details: error.message
+        });
+    }
+});
+
+// Send a message
+app.post('/api/conversations/:conversationId/messages', requireAuth, async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+        const { content, reply_to_message_id } = req.body;
+        const user = req.session.user;
+        
+        // Check if user is participant in conversation
+        const conversation = await db.getConversationById(conversationId, user.id);
+        if (!conversation) {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        
+        const messageData = {
+            conversation_id: conversationId,
+            sender_id: user.id,
+            content,
+            reply_to_message_id: reply_to_message_id || null
+        };
+        
+        const messageId = await db.sendMessage(messageData);
+        res.json({ success: true, messageId, message: 'Message sent successfully' });
+    } catch (error) {
+        console.error('Send message error:', error);
+        res.status(500).json({ error: 'Error sending message' });
+    }
+});
+
+// Mark message as read
+app.post('/api/messages/:messageId/read', requireAuth, async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const user = req.session.user;
+        
+        await db.markMessageAsRead(messageId, user.id);
+        res.json({ success: true, message: 'Message marked as read' });
+    } catch (error) {
+        console.error('Mark message as read error:', error);
+        res.status(500).json({ error: 'Error marking message as read' });
+    }
+});
+
+// Get unread messages count
+app.get('/api/messages/unread-count', requireAuth, async (req, res) => {
+    try {
+        const user = req.session.user;
+        const unreadCount = await db.getUnreadMessagesCount(user.id);
+        res.json({ success: true, unreadCount });
+    } catch (error) {
+        console.error('Get unread count error:', error);
+        res.status(500).json({ error: 'Error getting unread count' });
+    }
+});
+
+// Create a new conversation
+app.post('/api/conversations', requireAuth, async (req, res) => {
+    try {
+        const { type, title, description, participants } = req.body;
+        const user = req.session.user;
+        
+        const conversationData = {
+            type: type || 'direct',
+            title,
+            description,
+            family_id: type === 'family' ? user.familyId : null,
+            created_by: user.id
+        };
+        
+        const conversationId = await db.createConversation(conversationData);
+        
+        // Add creator as admin
+        await db.addParticipantToConversation(conversationId, user.id, 'admin');
+        
+        // Add other participants
+        if (participants && participants.length > 0) {
+            for (const participantId of participants) {
+                await db.addParticipantToConversation(conversationId, participantId, 'member');
+            }
+        }
+        
+        res.json({ success: true, conversationId, message: 'Conversation created successfully' });
+    } catch (error) {
+        console.error('Create conversation error:', error);
+        res.status(500).json({ error: 'Error creating conversation' });
+    }
+});
+
+// Find or create direct conversation
+app.post('/api/conversations/direct', requireAuth, async (req, res) => {
+    try {
+        const { otherUserId } = req.body;
+        const user = req.session.user;
+        
+        if (!otherUserId) {
+            return res.status(400).json({ error: 'Other user ID is required' });
+        }
+        
+        const conversationId = await db.findOrCreateDirectConversation(user.id, otherUserId);
+        res.json({ success: true, conversationId });
+    } catch (error) {
+        console.error('Find or create direct conversation error:', error);
+        res.status(500).json({ error: 'Error creating direct conversation' });
+    }
+});
+
+// Search users for messaging
+app.get('/api/users/search', requireAuth, async (req, res) => {
+    try {
+        const { q } = req.query;
+        const user = req.session.user;
+        
+        if (!q || q.length < 2) {
+            return res.json({ success: true, users: [] });
+        }
+        
+        const users = await db.searchUsers(q, user.id, user.familyId);
+        res.json({ success: true, users });
+    } catch (error) {
+        console.error('Search users error:', error);
+        res.status(500).json({ error: 'Error searching users' });
+    }
+});
+
+// Delete a message
+app.delete('/api/messages/:messageId', requireAuth, async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const user = req.session.user;
+        
+        const affectedRows = await db.deleteMessage(messageId, user.id);
+        if (affectedRows === 0) {
+            return res.status(404).json({ error: 'Message not found or not authorized' });
+        }
+        
+        res.json({ success: true, message: 'Message deleted successfully' });
+    } catch (error) {
+        console.error('Delete message error:', error);
+        res.status(500).json({ error: 'Error deleting message' });
+    }
+});
+
+// Edit a message
+app.put('/api/messages/:messageId', requireAuth, async (req, res) => {
+    try {
+        const { messageId } = req.params;
+        const { content } = req.body;
+        const user = req.session.user;
+        
+        if (!content || content.trim().length === 0) {
+            return res.status(400).json({ error: 'Message content is required' });
+        }
+        
+        const affectedRows = await db.editMessage(messageId, content.trim(), user.id);
+        if (affectedRows === 0) {
+            return res.status(404).json({ error: 'Message not found or not authorized' });
+        }
+        
+        res.json({ success: true, message: 'Message updated successfully' });
+    } catch (error) {
+        console.error('Edit message error:', error);
+        res.status(500).json({ error: 'Error updating message' });
+    }
+});
+
 // Serve HTML files
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
@@ -1236,6 +1562,10 @@ app.get('/register', (req, res) => {
 
 app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
+app.get('/messages', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'messages.html'));
 });
 
 app.get('/about', (req, res) => {

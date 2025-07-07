@@ -35,6 +35,7 @@ const initializeDatabase = async () => {
         await connection.query('SET FOREIGN_KEY_CHECKS = 0');
         
         const tablesToDrop = [
+            'message_status', 'messages', 'conversation_participants', 'conversations',
             'reward_redemptions', 'points_transactions', 'task_assignments', 
             'rewards', 'tasks', 'standard_tasks', 'users', 'families', 'user_sessions'
         ];
@@ -205,6 +206,93 @@ const initializeDatabase = async () => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
 
+        // Create conversations table
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS conversations (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                type ENUM('family', 'group', 'direct', 'cross_family') NOT NULL DEFAULT 'direct',
+                title VARCHAR(255),
+                description TEXT,
+                family_id INT,
+                created_by INT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (family_id) REFERENCES families(id) ON DELETE CASCADE,
+                FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `);
+
+        // Create conversation_participants table
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS conversation_participants (
+                conversation_id INT NOT NULL,
+                user_id INT NOT NULL,
+                role ENUM('admin', 'moderator', 'member') NOT NULL DEFAULT 'member',
+                joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
+                PRIMARY KEY (conversation_id, user_id),
+                FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `);
+
+        // Create messages table
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS messages (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                conversation_id INT NOT NULL,
+                sender_id INT NOT NULL,
+                message_type ENUM('text', 'image', 'file', 'system') NOT NULL DEFAULT 'text',
+                content TEXT NOT NULL,
+                file_path VARCHAR(500),
+                file_name VARCHAR(255),
+                file_size BIGINT,
+                reply_to_message_id INT,
+                is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+                is_edited TINYINT(1) NOT NULL DEFAULT 0,
+                edited_at TIMESTAMP NULL DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+                FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (reply_to_message_id) REFERENCES messages(id) ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `);
+
+        // Create message_status table
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS message_status (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                message_id INT NOT NULL,
+                user_id INT NOT NULL,
+                status ENUM('delivered', 'read') NOT NULL DEFAULT 'delivered',
+                status_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_message_user_status (message_id, user_id),
+                FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `);
+
+        // Create family conversation for each family
+        await connection.query(`
+            INSERT IGNORE INTO conversations (type, family_id, created_at)
+            SELECT 'family', id, NOW()
+            FROM families
+            WHERE id NOT IN (SELECT family_id FROM conversations WHERE type = 'family' AND family_id IS NOT NULL);
+        `);
+
+        // Add all family members to their family conversation
+        await connection.query(`
+            INSERT IGNORE INTO conversation_participants (conversation_id, user_id, role)
+            SELECT c.id, u.id, 'member'
+            FROM conversations c
+            JOIN users u ON u.family_id = c.family_id
+            WHERE c.type = 'family'
+            AND NOT EXISTS (
+                SELECT 1 FROM conversation_participants cp 
+                WHERE cp.conversation_id = c.id AND cp.user_id = u.id
+            );
+        `);
+
         console.log('✅ Database tables created successfully');
 
         // Insert sample data
@@ -271,6 +359,89 @@ const initializeDatabase = async () => {
             (3, 4, 75, 'earned', 'Goed gedrag', NULL, NULL, 1, '2025-07-04 19:58:11'),
             (4, 7, 200, 'earned', 'Uitstekende prestaties', NULL, NULL, 5, '2025-07-04 19:58:11'),
             (5, 8, 120, 'earned', 'Taken voltooid', NULL, NULL, 5, '2025-07-04 19:58:11')
+        `);
+
+        // Insert sample conversations
+        await connection.query(`
+            INSERT INTO \`conversations\` (\`id\`, \`type\`, \`title\`, \`description\`, \`family_id\`, \`created_by\`, \`created_at\`, \`updated_at\`) VALUES
+            (1, 'family', 'Familie Johnson Chat', 'Algemene familie chat voor The Johnson Family', 1, 1, '2025-07-07 10:00:00', '2025-07-07 12:30:00'),
+            (2, 'family', 'Familie van der Berg', 'Familie gesprek voor dagelijkse zaken', 2, 5, '2025-07-07 09:00:00', '2025-07-07 11:45:00'),
+            (3, 'direct', 'John & Emma', 'Direct gesprek tussen vader en dochter', NULL, 1, '2025-07-07 08:00:00', '2025-07-07 10:15:00'),
+            (4, 'group', 'Ouders Support Groep', 'Ondersteuning voor ouders', NULL, 1, '2025-07-07 07:00:00', '2025-07-07 14:20:00'),
+            (5, 'cross_family', 'Cross-Familie Chat', 'Gesprek tussen verschillende families', NULL, 1, '2025-07-07 06:00:00', '2025-07-07 13:10:00')
+        `);
+
+        // Insert conversation participants
+        await connection.query(`
+            INSERT INTO \`conversation_participants\` (\`conversation_id\`, \`user_id\`, \`role\`, \`joined_at\`, \`is_active\`) VALUES
+            (1, 1, 'admin', '2025-07-07 10:00:00', 1),
+            (1, 2, 'admin', '2025-07-07 10:00:00', 1),
+            (1, 3, 'member', '2025-07-07 10:00:00', 1),
+            (1, 4, 'member', '2025-07-07 10:00:00', 1),
+            (2, 5, 'admin', '2025-07-07 09:00:00', 1),
+            (2, 6, 'admin', '2025-07-07 09:00:00', 1),
+            (2, 7, 'member', '2025-07-07 09:00:00', 1),
+            (2, 8, 'member', '2025-07-07 09:00:00', 1),
+            (3, 1, 'admin', '2025-07-07 08:00:00', 1),
+            (3, 3, 'member', '2025-07-07 08:00:00', 1),
+            (4, 1, 'admin', '2025-07-07 07:00:00', 1),
+            (4, 2, 'member', '2025-07-07 07:00:00', 1),
+            (4, 5, 'member', '2025-07-07 07:00:00', 1),
+            (4, 6, 'member', '2025-07-07 07:00:00', 1),
+            (5, 1, 'admin', '2025-07-07 06:00:00', 1),
+            (5, 5, 'member', '2025-07-07 06:00:00', 1),
+            (5, 9, 'member', '2025-07-07 06:00:00', 1)
+        `);
+
+        // Insert sample messages
+        await connection.query(`
+            INSERT INTO \`messages\` (\`id\`, \`conversation_id\`, \`sender_id\`, \`message_type\`, \`content\`, \`file_path\`, \`file_name\`, \`file_size\`, \`reply_to_message_id\`, \`is_deleted\`, \`is_edited\`, \`edited_at\`, \`created_at\`) VALUES
+            (1, 1, 1, 'text', 'Hallo allemaal! Welkom in onze familie chat 👋', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 10:00:00'),
+            (2, 1, 3, 'text', 'Hoi papa! Leuk dat we nu kunnen chatten 😊', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 10:05:00'),
+            (3, 1, 2, 'text', 'Dit is heel handig om afspraken te maken!', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 10:10:00'),
+            (4, 1, 4, 'text', 'Wanneer eten we vanavond?', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 12:30:00'),
+            (5, 2, 5, 'text', 'Goedemorgen familie! Hoe gaat het met iedereen?', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 09:00:00'),
+            (6, 2, 7, 'text', 'Goed papa! Ik ga vandaag mijn kamer opruimen 🧹', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 09:15:00'),
+            (7, 2, 6, 'text', 'Vergeet je huiswerk niet Lisa!', NULL, NULL, NULL, 3, 0, 0, NULL, '2025-07-07 09:30:00'),
+            (8, 2, 8, 'text', 'Mam, mag ik vrienden uitnodigen dit weekend?', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 11:45:00'),
+            (9, 3, 1, 'text', 'Hoi Emma, hoe ging het op school vandaag?', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 08:00:00'),
+            (10, 3, 3, 'text', 'Heel goed papa! Ik heb een 8 gehaald voor wiskunde! 🎉', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 08:15:00'),
+            (11, 3, 1, 'text', 'Wat geweldig! Daar ben ik heel trots op! 👏', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 10:15:00'),
+            (12, 4, 1, 'text', 'Hallo ouders! Welkom in onze support groep', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 07:00:00'),
+            (13, 4, 5, 'text', 'Fijn dat dit er is! Hoe gaan jullie om met schermtijd?', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 09:30:00'),
+            (14, 4, 2, 'text', 'Wij hebben vaste tijden ingesteld, werkt heel goed!', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 14:20:00'),
+            (15, 5, 1, 'text', 'Hallo families! Zullen we een gezamenlijke activiteit organiseren?', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 06:00:00'),
+            (16, 5, 5, 'text', 'Goed idee! Misschien een picknick in het park?', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 08:30:00'),
+            (17, 5, 9, 'text', 'Dat klinkt leuk! Wanneer hadden jullie gedacht?', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 13:10:00')
+        `);
+
+        // Insert message status (some messages read, some unread)
+        await connection.query(`
+            INSERT INTO \`message_status\` (\`message_id\`, \`user_id\`, \`status\`, \`status_at\`) VALUES
+            (1, 2, 'read', '2025-07-07 10:01:00'),
+            (1, 3, 'read', '2025-07-07 10:02:00'),
+            (1, 4, 'read', '2025-07-07 10:03:00'),
+            (2, 1, 'read', '2025-07-07 10:06:00'),
+            (2, 2, 'read', '2025-07-07 10:07:00'),
+            (2, 4, 'read', '2025-07-07 10:08:00'),
+            (3, 1, 'read', '2025-07-07 10:11:00'),
+            (3, 3, 'read', '2025-07-07 10:12:00'),
+            (3, 4, 'read', '2025-07-07 10:13:00'),
+            (4, 1, 'read', '2025-07-07 12:31:00'),
+            (4, 2, 'read', '2025-07-07 12:32:00'),
+            (4, 3, 'read', '2025-07-07 12:33:00'),
+            (9, 3, 'read', '2025-07-07 08:01:00'),
+            (10, 1, 'read', '2025-07-07 08:16:00'),
+            (11, 3, 'read', '2025-07-07 10:16:00'),
+            (12, 5, 'read', '2025-07-07 07:01:00'),
+            (12, 6, 'read', '2025-07-07 07:02:00'),
+            (13, 1, 'read', '2025-07-07 09:31:00'),
+            (13, 2, 'read', '2025-07-07 09:32:00'),
+            (13, 6, 'read', '2025-07-07 09:33:00'),
+            (15, 5, 'read', '2025-07-07 06:01:00'),
+            (15, 9, 'read', '2025-07-07 06:02:00'),
+            (16, 1, 'read', '2025-07-07 08:31:00'),
+            (16, 9, 'read', '2025-07-07 08:32:00')
         `);
 
         console.log('✅ Sample data inserted successfully');

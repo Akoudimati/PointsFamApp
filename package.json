@@ -7,7 +7,9 @@
     "start": "node start.js",
     "dev": "nodemon index.js",
     "direct": "node index.js",
-    "init-db": "node scripts/init-database.js"
+    "init-db": "node scripts/init-database.js",
+    "init-messaging": "node scripts/init-messaging-tables.js",
+    "demo-messages": "node scripts/demo-messaging-data.js"
   },
   "keywords": [
     "family",
@@ -27,7 +29,8 @@
     "express": "^4.18.2",
     "express-session": "^1.17.3",
     "multer": "^2.0.1",
-    "mysql2": "^3.6.0"
+    "mysql2": "^3.6.0",
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

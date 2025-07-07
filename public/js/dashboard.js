@@ -67,7 +67,240 @@ class DashboardManager {
             }
 
             this.setupBasicFeatures();
+            
+            // Load recent messages after a short delay to ensure everything is ready
+            setTimeout(() => {
+                this.loadRecentMessages();
+                
+                // Set up auto-refresh for recent messages every 30 seconds
+                setInterval(() => {
+                    this.loadRecentMessages();
+                }, 30000);
+            }, 500);
         });
+    }
+
+    async loadRecentMessages() {
+        try {
+            // Load family conversations for recent messages
+            const conversationsResponse = await fetch('/api/conversations?family_only=true', {
+                credentials: 'include'
+            });
+            
+            if (!conversationsResponse.ok) {
+                throw new Error(`Failed to load conversations: ${conversationsResponse.status}`);
+            }
+            
+            const conversationsData = await conversationsResponse.json();
+            
+            // Load unread messages count
+            const unreadResponse = await fetch('/api/messages/unread-count', {
+                credentials: 'include'
+            });
+            
+            if (unreadResponse.ok) {
+                const unreadData = await unreadResponse.json();
+                this.updateUnreadCount(unreadData.unreadCount);
+            }
+            
+            this.renderRecentMessages(conversationsData.conversations);
+            
+        } catch (error) {
+            console.error('Error loading recent messages:', error);
+            this.renderRecentMessagesError();
+        }
+    }
+
+    updateUnreadCount(count) {
+        const unreadCountElement = document.getElementById('unread-messages-count');
+        const unreadBadge = document.getElementById('unread-messages-badge');
+        
+        if (unreadCountElement) {
+            unreadCountElement.textContent = count;
+        }
+        
+        if (unreadBadge) {
+            if (count > 0) {
+                unreadBadge.textContent = count;
+                unreadBadge.classList.remove('d-none');
+            } else {
+                unreadBadge.classList.add('d-none');
+            }
+        }
+    }
+
+    renderRecentMessages(conversations) {
+        const container = document.getElementById('recent-messages-container');
+        
+        if (!conversations || conversations.length === 0) {
+            container.innerHTML = `
+                <div class="no-messages-state">
+                    <i class="fas fa-inbox"></i>
+                    <h6>Nog geen berichten</h6>
+                    <p>Start een gesprek met je familie of vrienden!</p>
+                    <a href="/messages" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i>
+                        Start een gesprek
+                    </a>
+                </div>
+            `;
+            return;
+        }
+
+        // Show only the 3 most recent conversations
+        const recentConversations = conversations.slice(0, 3);
+        
+        const messagesHTML = recentConversations.map(conversation => {
+            const title = conversation.title || this.getConversationTitle(conversation);
+            const lastMessage = conversation.last_message_content || 'Nog geen berichten';
+            const timeAgo = this.formatTimeAgo(conversation.last_message_at || conversation.created_at);
+            const unreadCount = conversation.unread_count || 0;
+            const hasUnread = unreadCount > 0;
+            
+            // Create avatar based on conversation type
+            const avatarClass = this.getAvatarClass(conversation.type);
+            const avatarText = this.getAvatarText(conversation);
+            const typeBadge = this.getTypeBadge(conversation.type);
+            
+            return `
+                <div class="chat-conversation ${hasUnread ? 'has-unread' : ''}" data-conversation-id="${conversation.id}">
+                    <div class="chat-avatar ${avatarClass}">
+                        ${avatarText}
+                    </div>
+                    <div class="chat-content">
+                        <div class="chat-title">${this.escapeHtml(title)}</div>
+                        <div class="chat-message">${this.escapeHtml(lastMessage)}</div>
+                    </div>
+                    <div class="chat-meta">
+                        <div class="chat-time">${timeAgo}</div>
+                        ${typeBadge}
+                        ${hasUnread ? `<div class="chat-unread-badge">${unreadCount}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        container.innerHTML = messagesHTML + `
+            <div class="recent-messages-footer">
+                <a href="/messages" class="btn btn-outline-primary btn-sm">
+                    <i class="fas fa-comments me-1"></i>
+                    Alle berichten bekijken
+                </a>
+            </div>
+        `;
+        
+        // Add click event listeners to conversation items
+        container.querySelectorAll('.chat-conversation').forEach(item => {
+            item.addEventListener('click', (e) => {
+                const conversationId = item.dataset.conversationId;
+                this.openConversation(conversationId);
+            });
+        });
+    }
+
+    getAvatarClass(type) {
+        switch (type) {
+            case 'family':
+                return 'family';
+            case 'group':
+                return 'group';
+            case 'direct':
+                return 'direct';
+            case 'cross_family':
+                return 'group';
+            default:
+                return 'direct';
+        }
+    }
+
+    getAvatarText(conversation) {
+        if (conversation.title) {
+            return conversation.title.charAt(0).toUpperCase();
+        }
+        
+        switch (conversation.type) {
+            case 'family':
+                return 'F';
+            case 'group':
+                return 'G';
+            case 'direct':
+                return 'D';
+            case 'cross_family':
+                return 'C';
+            default:
+                return '?';
+        }
+    }
+
+    getTypeBadge(type) {
+        switch (type) {
+            case 'family':
+                return '<span class="chat-type-badge family">Familie</span>';
+            case 'group':
+                return '<span class="chat-type-badge group">Groep</span>';
+            case 'direct':
+                return '<span class="chat-type-badge direct">Direct</span>';
+            case 'cross_family':
+                return '<span class="chat-type-badge cross-family">Cross-Familie</span>';
+            default:
+                return '';
+        }
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    openConversation(conversationId) {
+        // Navigate to messages page with specific conversation
+        window.location.href = `/messages?conversation=${conversationId}`;
+    }
+
+    renderRecentMessagesError() {
+        const container = document.getElementById('recent-messages-container');
+        container.innerHTML = `
+            <div class="error-messages">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h6>Kon berichten niet laden</h6>
+                <p>Er is een probleem opgetreden bij het laden van je berichten.</p>
+                <button class="btn btn-outline-primary btn-sm" onclick="window.dashboardManager.loadRecentMessages()">
+                    <i class="fas fa-redo me-1"></i>
+                    Probeer opnieuw
+                </button>
+            </div>
+        `;
+    }
+
+    getConversationTitle(conversation) {
+        if (conversation.title) return conversation.title;
+        
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        
+        switch (conversation.type) {
+            case 'family':
+                return `${user.familyName || 'Familie'} Chat`;
+            case 'group':
+                return 'Groepsgesprek';
+            case 'direct':
+                return 'Direct bericht';
+            default:
+                return 'Gesprek';
+        }
+    }
+
+    formatTimeAgo(timestamp) {
+        if (!timestamp) return '';
+        
+        const now = new Date();
+        const messageTime = new Date(timestamp);
+        const diffInMinutes = Math.floor((now - messageTime) / (1000 * 60));
+        
+        if (diffInMinutes < 1) return 'Nu';
+        if (diffInMinutes < 60) return `${diffInMinutes}m`;
+        if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}u`;
+        return `${Math.floor(diffInMinutes / 1440)}d`;
     }
 
     populateDashboard(data, user) {
@@ -332,9 +565,43 @@ class DashboardManager {
     }
 
     static init() {
-        return new DashboardManager();
+        window.dashboardManager = new DashboardManager();
+        return window.dashboardManager;
     }
 }
+
+// Initialize messaging system
+let messagingManager;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize messaging manager
+    messagingManager = new MessagingManager();
+    await messagingManager.init();
+    
+    // Load family chat messages
+    const familyChatId = 1; // The Johnson Family chat ID
+    await messagingManager.loadMessages(familyChatId);
+    
+    // Setup message input
+    const messageInput = document.getElementById('message-input');
+    if (messageInput) {
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                messagingManager.sendMessage();
+            }
+        });
+        
+        // Auto-resize textarea
+        messageInput.addEventListener('input', () => {
+            messageInput.style.height = 'auto';
+            messageInput.style.height = messageInput.scrollHeight + 'px';
+        });
+    }
+    
+    // Start polling for new messages
+    messagingManager.startMessagePolling();
+});
 
 // Global task action functions
 window.acceptTask = async (assignmentId) => {

@@ -1014,6 +1014,438 @@ class Database {
             throw err;
         }
     }
+
+    // ==============================================
+    // MESSAGING OPERATIONS
+    // ==============================================
+
+    async createConversation(conversationData) {
+        try {
+            const [result] = await this.pool.execute(
+                `INSERT INTO conversations (type, title, description, family_id, created_by, created_at)
+                 VALUES (?, ?, ?, ?, ?, NOW())`,
+                [
+                    conversationData.type,
+                    conversationData.title,
+                    conversationData.description,
+                    conversationData.family_id,
+                    conversationData.created_by
+                ]
+            );
+            return result.insertId;
+        } catch (err) {
+            console.error('Error creating conversation:', err);
+            throw err;
+        }
+    }
+
+    async getConversationsForUser(userId) {
+        try {
+            const sql = `
+                SELECT DISTINCT
+                    c.*,
+                    CASE 
+                        WHEN c.type = 'family' THEN f.name
+                        ELSE GROUP_CONCAT(DISTINCT 
+                            CASE 
+                                WHEN u.id != ? THEN CONCAT(u.first_name, ' ', u.last_name)
+                                ELSE NULL 
+                            END
+                            SEPARATOR ', '
+                        )
+                    END as title
+                FROM conversations c
+                JOIN conversation_participants cp ON c.id = cp.conversation_id
+                JOIN users u ON cp.user_id = u.id
+                LEFT JOIN families f ON c.family_id = f.id
+                WHERE c.id IN (
+                    SELECT conversation_id 
+                    FROM conversation_participants 
+                    WHERE user_id = ?
+                )
+                GROUP BY c.id
+                ORDER BY c.updated_at DESC
+            `;
+            
+            const [conversations] = await this.pool.query(sql, [userId, userId]);
+            return conversations;
+        } catch (error) {
+            console.error('Error in getConversationsForUser:', error);
+            throw error;
+        }
+    }
+
+    async getConversationById(conversationId, userId) {
+        try {
+            // First check if user is a participant
+            const [participants] = await this.pool.query(
+                'SELECT 1 FROM conversation_participants WHERE conversation_id = ? AND user_id = ?',
+                [conversationId, userId]
+            );
+            
+            if (participants.length === 0) {
+                return null;
+            }
+            
+            const sql = `
+                SELECT 
+                    c.*,
+                    CASE 
+                        WHEN c.type = 'family' THEN f.name
+                        ELSE GROUP_CONCAT(DISTINCT 
+                            CASE 
+                                WHEN u.id != ? THEN CONCAT(u.first_name, ' ', u.last_name)
+                                ELSE NULL 
+                            END
+                            SEPARATOR ', '
+                        )
+                    END as title
+                FROM conversations c
+                JOIN conversation_participants cp ON c.id = cp.conversation_id
+                JOIN users u ON cp.user_id = u.id
+                LEFT JOIN families f ON c.family_id = f.id
+                WHERE c.id = ?
+                GROUP BY c.id
+            `;
+            
+            const [conversations] = await this.pool.query(sql, [userId, conversationId]);
+            return conversations[0] || null;
+        } catch (error) {
+            console.error('Error in getConversationById:', error);
+            throw error;
+        }
+    }
+
+    async addParticipantToConversation(conversationId, userId, role = 'member') {
+        try {
+            const [result] = await this.pool.execute(
+                `INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at)
+                 VALUES (?, ?, ?, NOW())
+                 ON DUPLICATE KEY UPDATE is_active = 1, joined_at = NOW()`,
+                [conversationId, userId, role]
+            );
+            return result.insertId;
+        } catch (err) {
+            console.error('Error adding participant to conversation:', err);
+            throw err;
+        }
+    }
+
+    async getConversationParticipants(conversationId) {
+        try {
+            const sql = `
+                SELECT 
+                    u.id,
+                    u.first_name,
+                    u.last_name,
+                    u.role,
+                    cp.role as conversation_role
+                FROM users u
+                JOIN conversation_participants cp ON u.id = cp.user_id
+                WHERE cp.conversation_id = ?
+                ORDER BY u.first_name, u.last_name
+            `;
+            
+            const [participants] = await this.pool.query(sql, [conversationId]);
+            return participants;
+        } catch (error) {
+            console.error('Error in getConversationParticipants:', error);
+            throw error;
+        }
+    }
+
+    async sendMessage(messageData) {
+        try {
+            const sql = `
+                INSERT INTO messages (conversation_id, sender_id, content, created_at)
+                VALUES (?, ?, ?, NOW())
+            `;
+            
+            const [result] = await this.pool.query(sql, [
+                messageData.conversation_id,
+                messageData.sender_id,
+                messageData.content
+            ]);
+            
+            if (result.affectedRows === 1) {
+                // Fetch the newly created message with sender info
+                const [messages] = await this.pool.query(`
+                    SELECT 
+                        m.*,
+                        CONCAT(u.first_name, ' ', u.last_name) as sender_name,
+                        u.first_name as sender_first_name,
+                        u.last_name as sender_last_name,
+                        u.role as sender_role
+                    FROM messages m
+                    JOIN users u ON m.sender_id = u.id
+                    WHERE m.id = ?
+                `, [result.insertId]);
+                
+                return messages[0];
+            }
+            
+            throw new Error('Failed to create message');
+        } catch (error) {
+            console.error('Error in sendMessage:', error);
+            throw error;
+        }
+    }
+
+    async getMessages(conversationId, limit = 50, offset = 0) {
+        try {
+            const sql = `
+                SELECT 
+                    m.*,
+                    CONCAT(u.first_name, ' ', u.last_name) as sender_name,
+                    u.first_name as sender_first_name,
+                    u.last_name as sender_last_name,
+                    u.role as sender_role
+                FROM messages m
+                JOIN users u ON m.sender_id = u.id
+                WHERE m.conversation_id = ?
+                ORDER BY m.created_at DESC
+                LIMIT ? OFFSET ?
+            `;
+            
+            const [messages] = await this.pool.query(sql, [conversationId, limit, offset]);
+            return messages;
+        } catch (error) {
+            console.error('Error in getMessages:', error);
+            throw error;
+        }
+    }
+
+    async markMessageAsRead(messageId, userId) {
+        try {
+            const [result] = await this.pool.execute(
+                `INSERT INTO message_status (message_id, user_id, status, status_at)
+                 VALUES (?, ?, 'read', NOW())
+                 ON DUPLICATE KEY UPDATE status = 'read', status_at = NOW()`,
+                [messageId, userId]
+            );
+            return result.affectedRows;
+        } catch (err) {
+            console.error('Error marking message as read:', err);
+            throw err;
+        }
+    }
+
+    async getUnreadMessagesCount(userId) {
+        try {
+            const [rows] = await this.pool.execute(
+                `SELECT COUNT(DISTINCT m.id) as unread_count
+                 FROM messages m
+                 JOIN conversation_participants cp ON m.conversation_id = cp.conversation_id
+                 LEFT JOIN message_status ms ON m.id = ms.message_id AND ms.user_id = ?
+                 WHERE cp.user_id = ? AND cp.is_active = 1 
+                       AND m.sender_id != ? 
+                       AND (ms.status IS NULL OR ms.status != 'read')`,
+                [userId, userId, userId]
+            );
+            return rows[0]?.unread_count || 0;
+        } catch (err) {
+            console.error('Error getting unread messages count:', err);
+            throw err;
+        }
+    }
+
+    async findOrCreateDirectConversation(userId1, userId2) {
+        try {
+            // First try to find existing direct conversation
+            const [existing] = await this.pool.execute(
+                `SELECT c.id
+                 FROM conversations c
+                 JOIN conversation_participants cp1 ON c.id = cp1.conversation_id
+                 JOIN conversation_participants cp2 ON c.id = cp2.conversation_id
+                 WHERE c.type = 'direct' 
+                       AND cp1.user_id = ? AND cp1.is_active = 1
+                       AND cp2.user_id = ? AND cp2.is_active = 1
+                 LIMIT 1`,
+                [userId1, userId2]
+            );
+
+            if (existing.length > 0) {
+                return existing[0].id;
+            }
+
+            // Create new direct conversation
+            const [result] = await this.pool.execute(
+                `INSERT INTO conversations (type, created_by, created_at)
+                 VALUES ('direct', ?, NOW())`,
+                [userId1]
+            );
+
+            const conversationId = result.insertId;
+
+            // Add both participants
+            await this.pool.execute(
+                `INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at)
+                 VALUES (?, ?, 'member', NOW()), (?, ?, 'member', NOW())`,
+                [conversationId, userId1, conversationId, userId2]
+            );
+
+            return conversationId;
+        } catch (err) {
+            console.error('Error finding or creating direct conversation:', err);
+            throw err;
+        }
+    }
+
+    async searchUsers(query, currentUserId, familyId) {
+        try {
+            const [rows] = await this.pool.execute(
+                `SELECT u.id, u.first_name, u.last_name, u.role, f.name as family_name
+                 FROM users u
+                 JOIN families f ON u.family_id = f.id
+                 WHERE u.id != ? AND (
+                     u.family_id = ? OR 
+                     CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR
+                     u.first_name LIKE ? OR
+                     u.last_name LIKE ?
+                 )
+                 ORDER BY 
+                     CASE WHEN u.family_id = ? THEN 0 ELSE 1 END,
+                     u.first_name ASC
+                 LIMIT 20`,
+                [currentUserId, familyId, `%${query}%`, `%${query}%`, `%${query}%`, familyId]
+            );
+            return rows;
+        } catch (err) {
+            console.error('Error searching users:', err);
+            throw err;
+        }
+    }
+
+    async deleteMessage(messageId, userId) {
+        try {
+            const [result] = await this.pool.execute(
+                `UPDATE messages SET is_deleted = 1 
+                 WHERE id = ? AND sender_id = ?`,
+                [messageId, userId]
+            );
+            return result.affectedRows;
+        } catch (err) {
+            console.error('Error deleting message:', err);
+            throw err;
+        }
+    }
+
+    async editMessage(messageId, newContent, userId) {
+        try {
+            const [result] = await this.pool.execute(
+                `UPDATE messages SET content = ?, edited_at = NOW() 
+                 WHERE id = ? AND sender_id = ?`,
+                [newContent, messageId, userId]
+            );
+            return result.affectedRows;
+        } catch (err) {
+            console.error('Error editing message:', err);
+            throw err;
+        }
+    }
+
+    async getFamilyConversationsForUser(userId) {
+        try {
+            // Get user's family ID first
+            const user = await this.getUserById(userId);
+            if (!user || !user.family_id) {
+                return [];
+            }
+
+            // Get only family conversations for user
+            const [conversations] = await this.pool.execute(
+                `SELECT DISTINCT c.*, 
+                        COUNT(DISTINCT cp.user_id) as participant_count
+                 FROM conversations c
+                 JOIN conversation_participants cp ON c.id = cp.conversation_id
+                 WHERE cp.user_id = ? AND cp.is_active = 1 
+                       AND c.type = 'family' AND c.family_id = ?
+                 GROUP BY c.id, c.type, c.title, c.description, c.family_id, c.created_by, c.created_at, c.updated_at
+                 ORDER BY c.updated_at DESC, c.created_at DESC`,
+                [userId, user.family_id]
+            );
+
+            // For each conversation, get the last message and unread count
+            for (let conversation of conversations) {
+                // Get last message
+                const [lastMessage] = await this.pool.execute(
+                    `SELECT m.content, m.created_at, u.first_name as sender_name
+                     FROM messages m
+                     JOIN users u ON m.sender_id = u.id
+                     WHERE m.conversation_id = ?
+                     ORDER BY m.created_at DESC
+                     LIMIT 1`,
+                    [conversation.id]
+                );
+
+                if (lastMessage.length > 0) {
+                    conversation.last_message_content = lastMessage[0].content;
+                    conversation.last_message_at = lastMessage[0].created_at;
+                    conversation.last_sender_name = lastMessage[0].sender_name;
+                } else {
+                    conversation.last_message_content = null;
+                    conversation.last_message_at = null;
+                    conversation.last_sender_name = null;
+                }
+
+                // Get unread count
+                const [unreadCount] = await this.pool.execute(
+                    `SELECT COUNT(*) as unread_count
+                     FROM messages m
+                     LEFT JOIN message_status ms ON m.id = ms.message_id AND ms.user_id = ?
+                     WHERE m.conversation_id = ? 
+                           AND m.sender_id != ?
+                           AND (ms.status IS NULL OR ms.status != 'read')`,
+                    [userId, conversation.id, userId]
+                );
+
+                conversation.unread_count = unreadCount[0]?.unread_count || 0;
+            }
+
+            // Sort by last message time
+            conversations.sort((a, b) => {
+                const aTime = a.last_message_at || a.created_at;
+                const bTime = b.last_message_at || b.created_at;
+                return new Date(bTime) - new Date(aTime);
+            });
+
+            return conversations;
+        } catch (err) {
+            console.error('Error getting family conversations for user:', err);
+            throw err;
+        }
+    }
+
+    async getFamilyMembersForMessaging(userId) {
+        try {
+            // Get user's family ID first
+            const user = await this.getUserById(userId);
+            if (!user || !user.family_id) {
+                return [];
+            }
+
+            // Get all family members except the current user
+            const [members] = await this.pool.execute(
+                `SELECT u.id, u.first_name, u.last_name, u.role, u.points,
+                        f.name as family_name
+                 FROM users u
+                 JOIN families f ON u.family_id = f.id
+                 WHERE u.family_id = ? AND u.id != ?
+                 ORDER BY u.role DESC, u.first_name ASC`,
+                [user.family_id, userId]
+            );
+
+            // Add online status (you can implement this later)
+            return members.map(member => ({
+                ...member,
+                online_status: 'offline', // Default status
+                avatar_color: member.role === 'parent' ? '#28a745' : '#17a2b8'
+            }));
+        } catch (err) {
+            console.error('Error getting family members for messaging:', err);
+            throw err;
+        }
+    }
 }
 
 module.exports = Database; 

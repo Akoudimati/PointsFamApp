@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Berichtencentrum - PointsFam</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/light-theme.css" id="theme-stylesheet">
+    <link rel="stylesheet" href="/css/messaging.css">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="alternate icon" href="/favicon.ico" type="image/x-icon">
+    <style>
+        /* Additional custom styles for this page */
+        .messaging-page .navbar-custom {
+            background: linear-gradient(135deg, #2196f3, #1976d2);
+        }
+        
+        .conversation-type-badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 0.5rem;
+        }
+        
+        .family-badge {
+            background-color: #28a745;
+        }
+        
+        .group-badge {
+            background-color: #17a2b8;
+        }
+        
+        .direct-badge {
+            background-color: #6f42c1;
+        }
+    </style>
+</head>
+<body class="messaging-page">
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-star me-2"></i>
+                PointsFam
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link text-light me-3" href="/dashboard">
+                    <i class="fas fa-home me-1"></i>
+                    Dashboard
+                </a>
+                <a class="nav-link text-light me-3" href="/about">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Over ons
+                </a>
+                <span class="navbar-text me-3" id="user-info">
+                    <i class="fas fa-user me-1"></i>
+                    <span id="user-name">Laden...</span>
+                </span>
+                <button class="btn btn-outline-light btn-sm me-2" id="theme-toggle">
+                    <i class="fas fa-moon" id="theme-icon"></i>
+                </button>
+                <button class="btn btn-outline-light btn-sm" id="logout-btn">
+                    <i class="fas fa-sign-out-alt me-1"></i>
+                    Uitloggen
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4">
+        <div id="alert-container"></div>
+        
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h2 class="text-dark mb-0">
+                        <i class="fas fa-comments me-2"></i>
+                        Berichtencentrum
+                    </h2>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newChatModal">
+                            <i class="fas fa-plus me-1"></i>
+                            Nieuw gesprek
+                        </button>
+                        <button class="btn btn-outline-secondary d-md-none" id="mobile-conversations-toggle">
+                            <i class="fas fa-list me-1"></i>
+                            Gesprekken
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card messaging-container">
+            <div class="card-body p-0">
+                <div class="row g-0 h-100">
+                    <!-- Conversations Sidebar -->
+                    <div class="col-md-4 conversations-sidebar" id="conversations-sidebar">
+                        <div class="p-3 border-bottom">
+                            <button class="btn btn-link mobile-back-button p-0 mb-2" id="mobile-back-button">
+                                <i class="fas fa-arrow-left me-2"></i>
+                                Terug naar chat
+                            </button>
+                            <h5 class="mb-0">Gesprekken</h5>
+                        </div>
+                        <div id="conversations-list" class="conversation-loading">
+                            <div class="text-center p-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Laden...</span>
+                                </div>
+                                <p class="mt-2 text-muted">Gesprekken laden...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chat Area -->
+                    <div class="col-md-8 chat-area" id="chat-area">
+                        <div class="no-chat-selected" id="no-chat-selected">
+                            <div class="text-center">
+                                <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+                                <h4 class="text-muted">Selecteer een gesprek</h4>
+                                <p class="text-muted">Kies een gesprek uit de lijst om berichten te bekijken</p>
+                            </div>
+                        </div>
+
+                        <div class="d-none" id="active-chat">
+                            <!-- Chat Header -->
+                            <div class="chat-header p-3">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h5 class="mb-0" id="chat-title">Gesprek</h5>
+                                        <small class="text-muted" id="chat-participants">Deelnemers</small>
+                                    </div>
+                                    <div class="dropdown">
+                                        <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="dropdown">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a class="dropdown-item" href="#" id="chat-info">
+                                                <i class="fas fa-info-circle me-2"></i>Gesprek info
+                                            </a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item text-danger" href="#" id="leave-chat">
+                                                <i class="fas fa-sign-out-alt me-2"></i>Gesprek verlaten
+                                            </a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Messages Container -->
+                            <div class="messages-container" id="chat-messages">
+                                <!-- Messages will be loaded here -->
+                            </div>
+
+                            <!-- Message Input Area -->
+                            <div class="message-input-area">
+                                <form id="message-form" class="d-flex align-items-end">
+                                    <div class="flex-fill">
+                                        <textarea 
+                                            class="form-control message-input" 
+                                            id="message-input" 
+                                            rows="1" 
+                                            placeholder="Type een bericht..."
+                                            maxlength="1000"
+                                        ></textarea>
+                                    </div>
+                                    <button type="submit" class="send-button" id="send-button">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Chat Modal -->
+    <div class="modal fade" id="newChatModal" tabindex="-1" aria-labelledby="newChatModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="newChatModalLabel">Nieuw gesprek starten</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="new-chat-form">
+                        <div class="mb-3">
+                            <label for="chat-type" class="form-label">Type gesprek</label>
+                            <select class="form-select" id="chat-type" required>
+                                <option value="direct">Direct bericht</option>
+                                <option value="group">Groepsgesprek</option>
+                                <option value="family">Familiechat</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3" id="chat-title-group">
+                            <label for="new-chat-title" class="form-label">Gesprek titel</label>
+                            <input type="text" class="form-control" id="new-chat-title" placeholder="Geef het gesprek een naam">
+                        </div>
+                        
+                        <div class="mb-3" id="user-search-group">
+                            <label for="user-search" class="form-label">Zoek gebruikers</label>
+                            <div class="position-relative">
+                                <input type="text" class="form-control" id="user-search" placeholder="Zoek naar gebruikers...">
+                                <div class="user-search-dropdown d-none" id="user-search-dropdown">
+                                    <!-- Search results will appear here -->
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3" id="selected-users-group">
+                            <label class="form-label">Geselecteerde gebruikers</label>
+                            <div id="selected-users" class="d-flex flex-wrap gap-2">
+                                <!-- Selected users will appear here -->
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button>
+                    <button type="submit" form="new-chat-form" class="btn btn-primary">Gesprek starten</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/theme-switcher.js"></script>
+    <script src="/js/messages.js"></script>
+</body>
+</html> 
