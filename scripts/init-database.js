@@ -9,11 +9,14 @@ const initializeDatabase = async () => {
     try {
         // Create connection without specifying database first
         connection = await mysql.createConnection({
-            host: 'localhost',
-            user: 'root',
-            password: '',
-            port: 3306,
-            charset: 'utf8mb4'
+            host: 'mysql-3dfa6410-student-b14a.h.aivencloud.com',
+            user: 'avnadmin',
+            password: 'AVNS_YybduGVk3kmayJuZByo',
+            port: 15421,
+            charset: 'utf8mb4',
+            ssl: {
+                rejectUnauthorized: false
+            }
         });
 
         console.log('✅ Connected to MySQL server');

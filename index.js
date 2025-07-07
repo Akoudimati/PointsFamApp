@@ -99,16 +99,7 @@ app.use(preventCacheMiddleware);
 
 // Authentication middleware
 const requireAuth = (req, res, next) => {
-    // Debug logging
-    console.log(`🔐 Auth check for ${req.path}:`, {
-        hasSession: !!req.session,
-        hasUser: !!req.session?.user,
-        sessionId: req.session?.id,
-        userAgent: req.get('User-Agent')?.substring(0, 50)
-    });
-    
     if (!req.session || !req.session.user) {
-        console.log('❌ Authentication failed - no session or user');
         return res.status(401).json({ 
             error: 'Authentication required',
             sessionExpired: true 

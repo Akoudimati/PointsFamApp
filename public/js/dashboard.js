@@ -47,6 +47,9 @@ class DashboardManager {
                 const data = await response.json();
                 window.dashboardData = data;
                 
+                // Populate dashboard with data
+                this.populateDashboard(data, userData.user);
+                
                 if (userData.user.role === 'parent') {
                     this.setupChildSelection(data.family_members);
                 }
@@ -55,14 +58,131 @@ class DashboardManager {
                 console.error('Error fetching dashboard data:', error);
                 this.showNotification('Er is een fout opgetreden bij het laden van het dashboard.', 'danger');
                 
-                // If there's an error, redirect to login
-                setTimeout(() => {
-                    window.location.href = '/login.html';
-                }, 2000);
+                // Only redirect to login if it's an authentication error
+                if (error.message.includes('401') || error.message.includes('Authentication')) {
+                    setTimeout(() => {
+                        window.location.href = '/login.html';
+                    }, 2000);
+                }
             }
 
             this.setupBasicFeatures();
         });
+    }
+
+    populateDashboard(data, user) {
+        try {
+            // Update user points
+            const pointsElements = document.querySelectorAll('[data-user-points]');
+            pointsElements.forEach(el => {
+                el.textContent = user.points || 0;
+            });
+
+            // Update task counts
+            const tasks = data.tasks || [];
+            const completedTasks = tasks.filter(task => task.status === 'completed' || task.status === 'approved');
+            const pendingTasks = tasks.filter(task => task.status === 'pending');
+
+            const completedElements = document.querySelectorAll('[data-completed-tasks]');
+            completedElements.forEach(el => {
+                el.textContent = completedTasks.length;
+            });
+
+            const pendingElements = document.querySelectorAll('[data-pending-tasks]');
+            pendingElements.forEach(el => {
+                el.textContent = pendingTasks.length;
+            });
+
+            // Populate task list
+            this.populateTaskList(tasks);
+
+            // Hide error messages if everything loaded successfully
+            const errorAlerts = document.querySelectorAll('.alert-danger');
+            errorAlerts.forEach(alert => {
+                if (alert.textContent.includes('dashboard')) {
+                    alert.remove();
+                }
+            });
+
+            console.log('✅ Dashboard populated successfully');
+        } catch (error) {
+            console.error('Error populating dashboard:', error);
+        }
+    }
+
+    populateTaskList(tasks) {
+        const taskContainer = document.querySelector('[data-tasks-container]');
+        if (!taskContainer) return;
+
+        taskContainer.innerHTML = '';
+
+        if (tasks.length === 0) {
+            taskContainer.innerHTML = '<p class="text-muted">Geen taken beschikbaar.</p>';
+            return;
+        }
+
+        tasks.forEach(task => {
+            const taskElement = document.createElement('div');
+            taskElement.className = 'card mb-3';
+            taskElement.innerHTML = `
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h5 class="card-title">${task.name}</h5>
+                            <p class="card-text text-muted">${task.description || ''}</p>
+                            <span class="badge bg-info">${task.points} punten</span>
+                        </div>
+                        <div class="btn-group">
+                            ${this.getTaskButtons(task)}
+                        </div>
+                    </div>
+                </div>
+            `;
+            taskContainer.appendChild(taskElement);
+        });
+    }
+
+    getTaskButtons(task) {
+        const status = task.status || 'pending';
+        
+        switch (status) {
+            case 'pending':
+                return `
+                    <button class="btn btn-success btn-sm" onclick="acceptTask(${task.assignment_id})">
+                        <i class="fas fa-check"></i> Accepteren
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="declineTask(${task.assignment_id})">
+                        <i class="fas fa-times"></i> Weigeren
+                    </button>
+                `;
+            case 'accepted':
+                return `
+                    <button class="btn btn-primary btn-sm" onclick="completeTask(${task.assignment_id})">
+                        <i class="fas fa-check-circle"></i> Voltooien
+                    </button>
+                `;
+            case 'completed':
+                return `
+                    <span class="badge bg-warning">Wacht op goedkeuring</span>
+                `;
+            case 'approved':
+                return `
+                    <span class="badge bg-success">Goedgekeurd</span>
+                `;
+            case 'rejected':
+                return `
+                    <span class="badge bg-danger">Afgekeurd</span>
+                `;
+            default:
+                return `
+                    <button class="btn btn-success btn-sm" onclick="acceptTask(${task.assignment_id})">
+                        <i class="fas fa-check"></i> Accepteren
+                    </button>
+                    <button class="btn btn-outline-danger btn-sm" onclick="declineTask(${task.assignment_id})">
+                        <i class="fas fa-times"></i> Weigeren
+                    </button>
+                `;
+        }
     }
 
     setupChildSelection(familyMembers) {
@@ -215,6 +335,64 @@ class DashboardManager {
         return new DashboardManager();
     }
 }
+
+// Global task action functions
+window.acceptTask = async (assignmentId) => {
+    try {
+        const response = await fetch(`/api/task-assignments/${assignmentId}/accept`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            location.reload(); // Refresh to show updated status
+        } else {
+            console.error('Failed to accept task');
+            alert('Er is een fout opgetreden bij het accepteren van de taak.');
+        }
+    } catch (error) {
+        console.error('Error accepting task:', error);
+        alert('Er is een fout opgetreden bij het accepteren van de taak.');
+    }
+};
+
+window.declineTask = async (assignmentId) => {
+    try {
+        const response = await fetch(`/api/task-assignments/${assignmentId}/decline`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            location.reload(); // Refresh to show updated status
+        } else {
+            console.error('Failed to decline task');
+            alert('Er is een fout opgetreden bij het weigeren van de taak.');
+        }
+    } catch (error) {
+        console.error('Error declining task:', error);
+        alert('Er is een fout opgetreden bij het weigeren van de taak.');
+    }
+};
+
+window.completeTask = async (assignmentId) => {
+    try {
+        const response = await fetch(`/api/task-assignments/${assignmentId}/complete`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            location.reload(); // Refresh to show updated status
+        } else {
+            console.error('Failed to complete task');
+            alert('Er is een fout opgetreden bij het voltooien van de taak.');
+        }
+    } catch (error) {
+        console.error('Error completing task:', error);
+        alert('Er is een fout opgetreden bij het voltooien van de taak.');
+    }
+};
 
 // Initialize dashboard when DOM is ready
 if (document.readyState === 'loading') {
