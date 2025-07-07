@@ -13,24 +13,7 @@ class Database {
         const dbConfig = this.getDatabaseConfig();
         
         // Create connection pool for better performance
-<<<<<<< HEAD
-        this.pool = mysql.createPool({
-            host: 'mysql-3dfa6410-student-b14a.h.aivencloud.com',
-            user: 'avnadmin',
-            password: 'AVNS_YybduGVk3kmayJuZByo',
-            database: 'pointsfam',
-            port: 15421,
-            waitForConnections: true,
-            connectionLimit: 10,
-            queueLimit: 0,
-            charset: 'utf8mb4',
-            ssl: {
-                rejectUnauthorized: false
-            }
-        });
-=======
         this.pool = mysql.createPool(dbConfig);
->>>>>>> fc2a3062bc9aae9b752aca955a68af8d5ef7c9dc
 
         // Test connection
         this.testConnection();
