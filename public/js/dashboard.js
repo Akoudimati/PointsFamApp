@@ -339,7 +339,7 @@ class DashboardManager {
 // Global task action functions
 window.acceptTask = async (assignmentId) => {
     try {
-        const response = await fetch(`/api/task-assignments/${assignmentId}/accept`, {
+        const response = await fetch(`/api/assignments/${assignmentId}/accept`, {
             method: 'POST',
             credentials: 'include'
         });
@@ -358,8 +358,18 @@ window.acceptTask = async (assignmentId) => {
 
 window.declineTask = async (assignmentId) => {
     try {
-        const response = await fetch(`/api/task-assignments/${assignmentId}/decline`, {
+        const reason = prompt('Waarom wil je deze taak weigeren?');
+        if (!reason || reason.trim() === '') {
+            alert('Je moet een reden opgeven om de taak te weigeren.');
+            return;
+        }
+        
+        const response = await fetch(`/api/assignments/${assignmentId}/decline`, {
             method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ reason: reason.trim() }),
             credentials: 'include'
         });
 
@@ -377,7 +387,7 @@ window.declineTask = async (assignmentId) => {
 
 window.completeTask = async (assignmentId) => {
     try {
-        const response = await fetch(`/api/task-assignments/${assignmentId}/complete`, {
+        const response = await fetch(`/api/assignments/${assignmentId}/complete`, {
             method: 'POST',
             credentials: 'include'
         });

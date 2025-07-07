@@ -959,7 +959,7 @@
             const approvedTasks = allTaskAssignments.filter(task => task.status === 'approved');
             const rejectedTasks = allTaskAssignments.filter(task => task.status === 'rejected');
             const refusedTasks = allTaskAssignments.filter(task => task.status === 'declined');
-            const assignedTasks = allTaskAssignments.filter(task => task.status === 'assigned' || task.status === 'accepted');
+            const assignedTasks = allTaskAssignments.filter(task => task.status === 'pending');
 
             // Update tab badges
             document.getElementById('pending-count').textContent = pendingTasks.length;
@@ -1140,17 +1140,17 @@
                     let statusBadge = '';
                     let actionButton = '';
                     
-                    // Default to 'assigned' if no status (newly assigned tasks)
-                    const taskStatus = task.status || 'assigned';
+                    // Default to 'pending' if no status (newly assigned tasks)
+                    const taskStatus = task.status || 'pending';
                     
                     switch (taskStatus) {
-                        case 'assigned':
-                            statusBadge = '<span class="badge bg-info">Nieuwe taak</span>';
+                        case 'pending':
+                            statusBadge = '<span class="badge bg-info">Wacht op acceptatie</span>';
                             actionButton = `<div class="btn-group" role="group">
-                                <button class="btn btn-success btn-sm" onclick="acceptTask(${task.assignment_id})" title="Taak accepteren">
-                                    <i class="fas fa-check"></i> Accepteren
+                                <button class="btn btn-success btn-sm" onclick="acceptTask(${task.assignment_id})" title="Taak accepteren en voltooien">
+                                    <i class="fas fa-check"></i> Accepteren & Voltooien
                                 </button>
-                                <button class="btn btn-outline-danger btn-sm" onclick="rejectTaskChild(${task.assignment_id})" title="Taak weigeren">
+                                <button class="btn btn-outline-danger btn-sm" onclick="declineTask(${task.assignment_id})" title="Taak weigeren">
                                     <i class="fas fa-times"></i> Weigeren
                                 </button>
                                 <button class="btn btn-outline-danger btn-sm" onclick="deleteTask(${task.assignment_id}, '${task.name}')" title="Taak verwijderen">
@@ -1158,11 +1158,30 @@
                                 </button>
                             </div>`;
                             break;
-                        case 'accepted':
-                            statusBadge = '<span class="badge bg-dark">Geaccepteerd</span>';
+                        case 'completed':
+                            statusBadge = '<span class="badge bg-warning">Wacht op goedkeuring</span>';
                             actionButton = `<div class="btn-group" role="group">
-                                <button class="btn btn-success btn-sm" onclick="completeTask(${task.assignment_id})">
-                                    <i class="fas fa-check"></i> Voltooien
+                                <button class="btn btn-outline-info btn-sm" disabled>
+                                    <i class="fas fa-clock"></i> Wacht op ouder
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteTask(${task.assignment_id}, '${task.name}')" title="Taak verwijderen">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>`;
+                            break;
+                        case 'approved':
+                            statusBadge = '<span class="badge bg-success">Goedgekeurd</span>';
+                            actionButton = `<div class="btn-group" role="group">
+                                <button class="btn btn-outline-success btn-sm" disabled>
+                                    <i class="fas fa-trophy"></i> Voltooid! +${task.points_awarded || task.points} punten
+                                </button>
+                            </div>`;
+                            break;
+                        case 'rejected':
+                            statusBadge = '<span class="badge bg-danger">Afgewezen</span>';
+                            actionButton = `<div class="btn-group" role="group">
+                                <button class="btn btn-warning btn-sm" onclick="acceptTask(${task.assignment_id})" title="Opnieuw proberen">
+                                    <i class="fas fa-redo"></i> Opnieuw proberen
                                 </button>
                                 <button class="btn btn-outline-danger btn-sm" onclick="deleteTask(${task.assignment_id}, '${task.name}')" title="Taak verwijderen">
                                     <i class="fas fa-trash"></i>
