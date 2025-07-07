@@ -23,7 +23,11 @@ class Database {
             // SSL configuration for production
             ssl: process.env.NODE_ENV === 'production' ? {
                 rejectUnauthorized: false
-            } : false
+            } : false,
+            // Connection timeout and retry settings
+            acquireTimeout: 60000,
+            timeout: 60000,
+            reconnect: true
         });
 
         // Test connection
@@ -477,6 +481,29 @@ class Database {
             return result.affectedRows;
         } catch (err) {
             console.error('Error rejecting task:', err);
+            throw err;
+        }
+    }
+
+    async getAllTaskAssignmentsForFamily(familyId) {
+        try {
+            const [rows] = await this.pool.execute(
+                `SELECT ta.*, t.name as task_name, t.description, t.points, t.category,
+                        u.first_name, u.last_name, u.username,
+                        assigned_by_user.first_name as assigned_by_name,
+                        approved_by_user.first_name as approved_by_name
+                 FROM task_assignments ta
+                 JOIN tasks t ON ta.task_id = t.id
+                 JOIN users u ON ta.assigned_to = u.id
+                 LEFT JOIN users assigned_by_user ON ta.assigned_by = assigned_by_user.id
+                 LEFT JOIN users approved_by_user ON ta.approved_by = approved_by_user.id
+                 WHERE t.family_id = ?
+                 ORDER BY ta.created_at DESC`,
+                [familyId]
+            );
+            return rows;
+        } catch (err) {
+            console.error('Error getting all task assignments for family:', err);
             throw err;
         }
     }
