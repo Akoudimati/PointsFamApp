@@ -52,13 +52,15 @@ class PointsFamApp {
                 headers: {
                     'Content-Type': 'application/json'
                 },
+                credentials: 'include', // Important for session cookies
                 body: JSON.stringify(loginData)
             });
 
             const data = await response.json();
 
             if (response.ok) {
-                localStorage.setItem('token', data.token);
+                // Store user info in localStorage for quick access
+                localStorage.setItem('user', JSON.stringify(data.user));
                 this.showMessage('Succesvol ingelogd!', 'success');
                 setTimeout(() => {
                     window.location.href = '/dashboard.html';
@@ -67,6 +69,7 @@ class PointsFamApp {
                 this.showMessage(data.error || 'Login mislukt', 'danger');
             }
         } catch (error) {
+            console.error('Login error:', error);
             this.showMessage('Er is een fout opgetreden', 'danger');
         }
     }
@@ -112,9 +115,29 @@ class PointsFamApp {
         }
     }
 
-    handleLogout() {
-        localStorage.removeItem('token');
-        window.location.href = '/login.html';
+    async handleLogout() {
+        try {
+            const response = await fetch('/api/logout', {
+                method: 'POST',
+                credentials: 'include' // Important for session cookies
+            });
+
+            if (response.ok) {
+                localStorage.removeItem('user');
+                this.showMessage('Succesvol uitgelogd!', 'success');
+                setTimeout(() => {
+                    window.location.href = '/login.html';
+                }, 1000);
+            } else {
+                // Still redirect even if logout fails
+                localStorage.removeItem('user');
+                window.location.href = '/login.html';
+            }
+        } catch (error) {
+            console.error('Logout error:', error);
+            localStorage.removeItem('user');
+            window.location.href = '/login.html';
+        }
     }
 
     setupFormValidation() {

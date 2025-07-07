@@ -9,32 +9,56 @@ class DashboardManager {
 
     init() {
         document.addEventListener('DOMContentLoaded', async () => {
-            const token = localStorage.getItem('token');
-            if (!token) {
-                window.location.href = '/login.html';
-                return;
-            }
-
+            // Check if user is authenticated by checking session
             try {
-                const response = await fetch('/api/dashboard', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                const userResponse = await fetch('/api/user', {
+                    credentials: 'include' // Important for session cookies
                 });
+                
+                if (!userResponse.ok) {
+                    if (userResponse.status === 401) {
+                        // Session expired, redirect to login
+                        localStorage.removeItem('user');
+                        window.location.href = '/login.html';
+                        return;
+                    }
+                    throw new Error(`HTTP error! status: ${userResponse.status}`);
+                }
+                
+                const userData = await userResponse.json();
+                
+                // Store user data for quick access
+                localStorage.setItem('user', JSON.stringify(userData.user));
+                
+                // Now fetch dashboard data
+                const response = await fetch('/api/dashboard', {
+                    credentials: 'include' // Important for session cookies
+                });
+                
                 if (!response.ok) {
+                    if (response.status === 401) {
+                        localStorage.removeItem('user');
+                        window.location.href = '/login.html';
+                        return;
+                    }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                const data = await response.json();
                 
+                const data = await response.json();
                 window.dashboardData = data;
                 
-                if (data.user.role === 'parent') {
+                if (userData.user.role === 'parent') {
                     this.setupChildSelection(data.family_members);
                 }
                 
             } catch (error) {
                 console.error('Error fetching dashboard data:', error);
                 this.showNotification('Er is een fout opgetreden bij het laden van het dashboard.', 'danger');
+                
+                // If there's an error, redirect to login
+                setTimeout(() => {
+                    window.location.href = '/login.html';
+                }, 2000);
             }
 
             this.setupBasicFeatures();

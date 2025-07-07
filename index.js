@@ -75,10 +75,10 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
-        maxAge: 8 * 60 * 60 * 1000, // 8 hours
+        secure: process.env.NODE_ENV === 'production' && process.env.HTTPS === 'true', // Only secure in production with HTTPS
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours (extended for better UX)
         httpOnly: true, // Prevent XSS attacks
-        sameSite: 'strict' // CSRF protection
+        sameSite: process.env.NODE_ENV === 'production' ? 'lax' : 'lax' // More permissive for better compatibility
     },
     rolling: true, // Reset expiration on each request
     name: 'pointsfam.session' // Custom session name
@@ -99,9 +99,27 @@ app.use(preventCacheMiddleware);
 
 // Authentication middleware
 const requireAuth = (req, res, next) => {
-    if (!req.session.user) {
-        return res.status(401).json({ error: 'Authentication required' });
+    // Debug logging
+    console.log(`🔐 Auth check for ${req.path}:`, {
+        hasSession: !!req.session,
+        hasUser: !!req.session?.user,
+        sessionId: req.session?.id,
+        userAgent: req.get('User-Agent')?.substring(0, 50)
+    });
+    
+    if (!req.session || !req.session.user) {
+        console.log('❌ Authentication failed - no session or user');
+        return res.status(401).json({ 
+            error: 'Authentication required',
+            sessionExpired: true 
+        });
     }
+    
+    // Refresh session data if user exists
+    if (req.session.user) {
+        req.session.touch(); // Keep session alive
+    }
+    
     next();
 };
 
@@ -169,6 +187,55 @@ app.post('/api/logout', (req, res) => {
 
 app.get('/api/user', requireAuth, (req, res) => {
     res.json({ user: req.session.user });
+});
+
+// Dashboard data endpoint
+app.get('/api/dashboard', requireAuth, async (req, res) => {
+    try {
+        const user = req.session.user;
+        
+        // Get family members
+        const familyMembers = await db.getFamilyMembers(user.familyId);
+        
+        // Get tasks based on role
+        let tasks = [];
+        if (user.role === 'parent') {
+            tasks = await db.getTasksForFamily(user.familyId);
+        } else {
+            tasks = await db.getTasksForUser(user.id);
+        }
+        
+        // Get rewards
+        const rewards = await db.getRewards(user.familyId);
+        
+        // Get points history
+        const pointsHistory = await db.getPointsHistory(user.id);
+        
+        res.json({
+            user: user,
+            family_members: familyMembers,
+            tasks: tasks,
+            rewards: rewards,
+            points_history: pointsHistory
+        });
+    } catch (error) {
+        console.error('Dashboard data error:', error);
+        res.status(500).json({ error: 'Error loading dashboard data' });
+    }
+});
+
+// Session debug endpoint (remove in production)
+app.get('/api/debug/session', (req, res) => {
+    res.json({
+        hasSession: !!req.session,
+        sessionId: req.session?.id,
+        user: req.session?.user || null,
+        cookie: req.session?.cookie || null,
+        headers: {
+            'user-agent': req.get('User-Agent'),
+            'cookie': req.get('Cookie')?.substring(0, 100) + '...'
+        }
+    });
 });
 
 // Registration endpoints
