@@ -71,12 +71,12 @@ app.use(bodyParser.json());
 
 // Session configuration
 app.use(session({
-    secret: 'pointsfam-secret-key-2024',
+    secret: process.env.SESSION_SECRET || 'pointsfam-secret-key-2024',
     resave: false,
     saveUninitialized: false,
     cookie: {
-        secure: false, // Set to true in production with HTTPS
-        maxAge: 8 * 60 * 60 * 1000, // 8 hours (reduced from 24)
+        secure: process.env.NODE_ENV === 'production', // Use secure cookies in production
+        maxAge: 8 * 60 * 60 * 1000, // 8 hours
         httpOnly: true, // Prevent XSS attacks
         sameSite: 'strict' // CSRF protection
     },
