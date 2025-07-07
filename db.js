@@ -11,23 +11,18 @@ class Database {
     init() {
         // Create connection pool for better performance
         this.pool = mysql.createPool({
-            host: process.env.DB_HOST || 'localhost',
-            user: process.env.DB_USER || 'root',
-            password: process.env.DB_PASSWORD || '',
-            database: process.env.DB_NAME || 'pointsfam',
-            port: process.env.DB_PORT || 3306,
+            host: 'mysql-3dfa6410-student-b14a.h.aivencloud.com',
+            user: 'avnadmin',
+            password: 'AVNS_YybduGVk3kmayJuZByo',
+            database: 'pointsfam',
+            port: 15421,
             waitForConnections: true,
             connectionLimit: 10,
             queueLimit: 0,
             charset: 'utf8mb4',
-            // SSL configuration for production
-            ssl: process.env.NODE_ENV === 'production' ? {
+            ssl: {
                 rejectUnauthorized: false
-            } : false,
-            // Connection timeout and retry settings
-            acquireTimeout: 60000,
-            timeout: 60000,
-            reconnect: true
+            }
         });
 
         // Test connection
@@ -287,7 +282,6 @@ class Database {
                         ta.status,
                         ta.completed_at,
                         ta.created_at as assigned_at,
-                        ta.decline_reason,
                         ta.points_awarded,
                         'assigned' as user_status
                  FROM tasks t
@@ -344,6 +338,25 @@ class Database {
             return rows;
         } catch (err) {
             console.error('Error getting pending tasks for family:', err);
+            throw err;
+        }
+    }
+
+    async getAllTaskAssignmentsForFamily(familyId) {
+        try {
+            const [rows] = await this.pool.execute(
+                `SELECT t.*, ta.id as assignment_id, ta.status, ta.completed_at, ta.created_at as assigned_at,
+                        u.first_name, u.last_name, t.name as task_name, ta.points_awarded
+                 FROM tasks t
+                 JOIN task_assignments ta ON t.id = ta.task_id
+                 JOIN users u ON ta.assigned_to = u.id
+                 WHERE t.family_id = ? AND t.is_active = 1
+                 ORDER BY ta.created_at DESC`,
+                [familyId]
+            );
+            return rows;
+        } catch (err) {
+            console.error('Error getting all task assignments for family:', err);
             throw err;
         }
     }
@@ -421,7 +434,7 @@ class Database {
     async acceptTask(assignmentId) {
         try {
             const [result] = await this.pool.execute(
-                `UPDATE task_assignments SET status = 'accepted', accepted_at = NOW() WHERE id = ?`,
+                `UPDATE task_assignments SET status = 'pending' WHERE id = ?`,
                 [assignmentId]
             );
             return result.affectedRows;
@@ -434,8 +447,8 @@ class Database {
     async declineTask(assignmentId, reason = null) {
         try {
             const [result] = await this.pool.execute(
-                `UPDATE task_assignments SET status = 'declined', declined_at = NOW(), decline_reason = ? WHERE id = ?`,
-                [reason, assignmentId]
+                `UPDATE task_assignments SET status = 'rejected' WHERE id = ?`,
+                [assignmentId]
             );
             return result.affectedRows;
         } catch (err) {
@@ -446,10 +459,8 @@ class Database {
 
     async completeTask(assignmentId) {
         try {
-            // Only allow completion of accepted tasks
             const [result] = await this.pool.execute(
-                `UPDATE task_assignments SET status = 'completed', completed_at = NOW() 
-                 WHERE id = ? AND status = 'accepted'`,
+                `UPDATE task_assignments SET status = 'completed', completed_at = NOW() WHERE id = ?`,
                 [assignmentId]
             );
             return result.affectedRows;
@@ -485,25 +496,15 @@ class Database {
         }
     }
 
-    async getAllTaskAssignmentsForFamily(familyId) {
+    async deleteTaskAssignment(assignmentId) {
         try {
-            const [rows] = await this.pool.execute(
-                `SELECT ta.*, t.name as task_name, t.description, t.points, t.category,
-                        u.first_name, u.last_name, u.username,
-                        assigned_by_user.first_name as assigned_by_name,
-                        approved_by_user.first_name as approved_by_name
-                 FROM task_assignments ta
-                 JOIN tasks t ON ta.task_id = t.id
-                 JOIN users u ON ta.assigned_to = u.id
-                 LEFT JOIN users assigned_by_user ON ta.assigned_by = assigned_by_user.id
-                 LEFT JOIN users approved_by_user ON ta.approved_by = approved_by_user.id
-                 WHERE t.family_id = ?
-                 ORDER BY ta.created_at DESC`,
-                [familyId]
+            const [result] = await this.pool.execute(
+                `DELETE FROM task_assignments WHERE id = ?`,
+                [assignmentId]
             );
-            return rows;
+            return result.affectedRows;
         } catch (err) {
-            console.error('Error getting all task assignments for family:', err);
+            console.error('Error deleting task assignment:', err);
             throw err;
         }
     }
@@ -587,6 +588,79 @@ class Database {
         }
     }
 
+    async createReward(rewardData) {
+        try {
+            const [result] = await this.pool.execute(
+                `INSERT INTO rewards (family_id, name, description, points_required, category, created_by, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+                [
+                    rewardData.family_id,
+                    rewardData.name,
+                    rewardData.description,
+                    rewardData.points_required,
+                    rewardData.category,
+                    rewardData.created_by
+                ]
+            );
+            return result.insertId;
+        } catch (err) {
+            console.error('Error creating reward:', err);
+            throw err;
+        }
+    }
+
+    async updateReward(rewardId, rewardData) {
+        try {
+            const [result] = await this.pool.execute(
+                `UPDATE rewards SET name = ?, description = ?, points_required = ?, category = ? WHERE id = ?`,
+                [
+                    rewardData.name,
+                    rewardData.description,
+                    rewardData.points_required,
+                    rewardData.category,
+                    rewardId
+                ]
+            );
+            return result.affectedRows;
+        } catch (err) {
+            console.error('Error updating reward:', err);
+            throw err;
+        }
+    }
+
+    async deleteReward(rewardId) {
+        try {
+            const [result] = await this.pool.execute(
+                `UPDATE rewards SET is_active = 0 WHERE id = ?`,
+                [rewardId]
+            );
+            return result.affectedRows;
+        } catch (err) {
+            console.error('Error deleting reward:', err);
+            throw err;
+        }
+    }
+
+    async getRewardRedemptions(familyId) {
+        try {
+            const [rows] = await this.pool.execute(
+                `SELECT rr.*, r.name as reward_name, r.description as reward_description, 
+                        r.category as reward_category, u.first_name, u.last_name
+                 FROM reward_redemptions rr
+                 JOIN rewards r ON rr.reward_id = r.id
+                 JOIN users u ON rr.redeemed_by = u.id
+                 WHERE u.family_id = ? AND r.family_id = ?
+                 ORDER BY rr.created_at DESC
+                 LIMIT 50`,
+                [familyId, familyId]
+            );
+            return rows;
+        } catch (err) {
+            console.error('Error getting reward redemptions:', err);
+            throw err;
+        }
+    }
+
     // ==============================================
     // STANDARD TASKS
     // ==============================================
@@ -599,6 +673,94 @@ class Database {
             return rows;
         } catch (err) {
             console.error('Error getting standard tasks:', err);
+            throw err;
+        }
+    }
+
+    // ==============================================
+    // PROFILE IMAGES OPERATIONS
+    // ==============================================
+
+    async createProfileImage(imageData) {
+        try {
+            const [result] = await this.pool.execute(
+                `INSERT INTO profile_images (user_id, image_path, description, uploaded_by, family_id, created_at)
+                 VALUES (?, ?, ?, ?, ?, NOW())`,
+                [
+                    imageData.user_id,
+                    imageData.image_path,
+                    imageData.description,
+                    imageData.uploaded_by,
+                    imageData.family_id
+                ]
+            );
+            return result.insertId;
+        } catch (err) {
+            console.error('Error creating profile image:', err);
+            throw err;
+        }
+    }
+
+    async getProfileImages(familyId) {
+        try {
+            const [rows] = await this.pool.execute(
+                `SELECT pi.*, u.first_name, u.last_name, u.role
+                 FROM profile_images pi
+                 JOIN users u ON pi.user_id = u.id
+                 WHERE pi.family_id = ? AND pi.is_active = 1
+                 ORDER BY pi.created_at DESC`,
+                [familyId]
+            );
+            return rows;
+        } catch (err) {
+            console.error('Error getting profile images:', err);
+            throw err;
+        }
+    }
+
+    async getProfileImageById(imageId) {
+        try {
+            const [rows] = await this.pool.execute(
+                `SELECT pi.*, u.first_name, u.last_name, u.role
+                 FROM profile_images pi
+                 JOIN users u ON pi.user_id = u.id
+                 WHERE pi.id = ? AND pi.is_active = 1`,
+                [imageId]
+            );
+            return rows[0] || null;
+        } catch (err) {
+            console.error('Error getting profile image by ID:', err);
+            throw err;
+        }
+    }
+
+    async deleteProfileImage(imageId) {
+        try {
+            const [result] = await this.pool.execute(
+                `UPDATE profile_images SET is_active = 0 WHERE id = ?`,
+                [imageId]
+            );
+            return result.affectedRows;
+        } catch (err) {
+            console.error('Error deleting profile image:', err);
+            throw err;
+        }
+    }
+
+    async getUserProfileImage(userId) {
+        try {
+            const [rows] = await this.pool.execute(
+                `SELECT pi.*, u.first_name, u.last_name, u.role
+                 FROM profile_images pi
+                 JOIN users u ON pi.user_id = u.id
+                 WHERE pi.user_id = ? AND pi.is_active = 1
+                 ORDER BY pi.created_at DESC
+                 LIMIT 1`,
+                [userId]
+            );
+            return rows[0] || null;
+        } catch (err) {
+            console.error('Error getting user profile image:', err);
             throw err;
         }
     }
