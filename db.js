@@ -43,42 +43,21 @@ class Database {
             };
         }
 
-        // If on production but no DB_HOST, use updated cloud database
-        if (process.env.NODE_ENV === 'production' && !process.env.DB_HOST) {
-            console.log('🔧 Using production fallback database');
-            return {
-                host: 'autorack.proxy.rlwy.net',
-                user: 'root',
-                password: 'WGQRLdYiSYbWRhHzPQTdoFpBtCKKIBUBc',
-                database: 'pointsfam',
-                port: 21478,
-                waitForConnections: true,
-                connectionLimit: 5,
-                queueLimit: 0,
-                charset: 'utf8mb4',
-                ssl: {
-                    rejectUnauthorized: false
-                },
-                acquireTimeout: 60000,
-                timeout: 60000,
-                reconnect: true,
-                connectTimeout: 60000
-            };
-        }
-
-        // Default to localhost for development
-        console.log('🔧 Using localhost database for development');
+        // Primary database: Aiven MySQL (works for all environments)
+        console.log('🔧 Using Aiven MySQL database');
         return {
-            host: 'localhost',
-            user: 'root',
-            password: '',
+            host: 'mysql-3dfa6410-student-b14a.h.aivencloud.com',
+            user: 'avnadmin',
+            password: 'AVNS_YybduGVk3kmayJuZByo',
             database: 'pointsfam',
-            port: 3306,
+            port: 15421,
             waitForConnections: true,
             connectionLimit: 10,
             queueLimit: 0,
             charset: 'utf8mb4',
-            ssl: false,
+            ssl: {
+                rejectUnauthorized: false
+            },
             acquireTimeout: 60000,
             timeout: 60000,
             reconnect: true,
@@ -120,6 +99,25 @@ class Database {
             {
                 name: 'Railway Alternative 1',
                 config: {
+                    host: 'autorack.proxy.rlwy.net',
+                    user: 'root',
+                    password: 'WGQRLdYiSYbWRhHzPQTdoFpBtCKKIBUBc',
+                    database: 'pointsfam',
+                    port: 21478,
+                    waitForConnections: true,
+                    connectionLimit: 5,
+                    queueLimit: 0,
+                    charset: 'utf8mb4',
+                    ssl: { rejectUnauthorized: false },
+                    acquireTimeout: 60000,
+                    timeout: 60000,
+                    reconnect: true,
+                    connectTimeout: 60000
+                }
+            },
+            {
+                name: 'Railway Alternative 2',
+                config: {
                     host: 'roundhouse.proxy.rlwy.net',
                     user: 'root',
                     password: 'GQRLdYiSYbWRhHzPQTdoFpBtCKKIBUBc',
@@ -137,7 +135,7 @@ class Database {
                 }
             },
             {
-                name: 'Railway Alternative 2',
+                name: 'Railway Alternative 3',
                 config: {
                     host: 'viaduct.proxy.rlwy.net',
                     user: 'root',
@@ -149,6 +147,25 @@ class Database {
                     queueLimit: 0,
                     charset: 'utf8mb4',
                     ssl: { rejectUnauthorized: false },
+                    acquireTimeout: 60000,
+                    timeout: 60000,
+                    reconnect: true,
+                    connectTimeout: 60000
+                }
+            },
+            {
+                name: 'Localhost Fallback',
+                config: {
+                    host: 'localhost',
+                    user: 'root',
+                    password: '',
+                    database: 'pointsfam',
+                    port: 3306,
+                    waitForConnections: true,
+                    connectionLimit: 10,
+                    queueLimit: 0,
+                    charset: 'utf8mb4',
+                    ssl: false,
                     acquireTimeout: 60000,
                     timeout: 60000,
                     reconnect: true,
