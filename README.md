@@ -15,7 +15,7 @@ A web-based family points application where children earn points for good behavi
 ## 🛠️ Tech Stack
 
 - **Backend**: Node.js + Express
-- **Database**: SQLite
+- **Database**: MySQL
 - **Frontend**: HTML + CSS + JavaScript + Bootstrap 5
 - **Authentication**: Session-based with bcrypt password hashing
 
@@ -24,6 +24,7 @@ A web-based family points application where children earn points for good behavi
 ### Prerequisites
 - Node.js (v14 or higher)
 - npm (comes with Node.js)
+- MySQL Server (v5.7 or higher)
 
 ### Installation
 
@@ -37,17 +38,25 @@ A web-based family points application where children earn points for good behavi
    npm install
    ```
 
-3. **Initialize the database**
-   ```bash
-   npm run init-db
-   ```
+3. **Setup MySQL Database**
+   - Start your MySQL server
+   - Create a database named `pointsfam`
+   - Import the database schema:
+     ```bash
+     mysql -u root -p pointsfam < database/pointsfam.sql
+     ```
+   - Or use phpMyAdmin/MySQL Workbench to import `database/pointsfam.sql`
 
-4. **Start the development server**
+4. **Configure Database Connection**
+   - Update `db.js` with your MySQL credentials if needed
+   - Default connection: host=localhost, user=root, password='' (empty), database=pointsfam
+
+5. **Start the development server**
    ```bash
    npm run dev
    ```
 
-5. **Access the application**
+6. **Access the application**
    - Open browser and go to: `http://localhost:3000`
 
 ### Production Start
@@ -59,10 +68,11 @@ npm start
 
 ```
 PointsFamApp/
-├── server.js                 # Main Express server
+├── index.js                  # Main Express server
+├── db.js                     # Database connection and operations
 ├── package.json              # Dependencies and scripts
 ├── database/
-│   └── pointsfam.db          # SQLite database (created after init)
+│   └── pointsfam.sql         # MySQL database schema and sample data
 ├── scripts/
 │   └── init-database.js      # Database initialization script
 ├── public/

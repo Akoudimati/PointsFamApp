@@ -1,234 +1,202 @@
-// PointsFam - Dashboard JavaScript
+// PointsFam - Dashboard JavaScript (Simplified)
 
 class DashboardManager {
     constructor() {
+        this.selectedChildId = 'all';
+        this.allChildren = [];
         this.init();
     }
 
     init() {
-        document.addEventListener('DOMContentLoaded', () => {
-            this.setupDashboardFeatures();
-            this.setupStatistics();
-        });
-    }
-
-    setupDashboardFeatures() {
-        // Setup quick actions
-        this.setupQuickActions();
-        
-        // Setup statistics animations
-        this.setupStatistics();
-    }
-
-    setupQuickActions() {
-        // Setup quick action cards
-        const actionCards = document.querySelectorAll('.action-card');
-        actionCards.forEach(card => {
-            card.addEventListener('click', (e) => {
-                // Add ripple effect
-                this.addRippleEffect(card, e);
-            });
-        });
-    }
-
-    setupStatistics() {
-        // Animate counters
-        this.animateCounters();
-        
-        // Setup progress bars if any
-        this.setupProgressBars();
-    }
-
-    animateCounters() {
-        const counters = document.querySelectorAll('.stat-number, .points-number, [id="user-points"], [id="completed-tasks"], [id="pending-tasks"]');
-        
-        const observerOptions = {
-            threshold: 0.5,
-            rootMargin: '0px'
-        };
-        
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const counter = entry.target;
-                    const finalValue = parseInt(counter.textContent);
-                    
-                    if (finalValue > 0) {
-                        this.animateCounter(counter, 0, finalValue, 1500);
-                    }
-                    
-                    observer.unobserve(counter);
-                }
-            });
-        }, observerOptions);
-        
-        counters.forEach(counter => {
-            observer.observe(counter);
-        });
-    }
-
-    animateCounter(element, start, end, duration) {
-        const startTime = performance.now();
-        
-        const animate = (currentTime) => {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            
-            // Use easing function for smooth animation
-            const easedProgress = this.easeOutCubic(progress);
-            const current = Math.round(start + (end - start) * easedProgress);
-            
-            element.textContent = current;
-            
-            if (progress < 1) {
-                requestAnimationFrame(animate);
+        document.addEventListener('DOMContentLoaded', async () => {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = '/login.html';
+                return;
             }
-        };
-        
-        requestAnimationFrame(animate);
-    }
 
-    setupProgressBars() {
-        const progressBars = document.querySelectorAll('.progress-bar');
-        
-        const observerOptions = {
-            threshold: 0.5,
-            rootMargin: '0px'
-        };
-        
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const progressBar = entry.target;
-                    const targetWidth = progressBar.getAttribute('aria-valuenow');
-                    
-                    // Animate progress bar
-                    progressBar.style.width = '0%';
-                    setTimeout(() => {
-                        progressBar.style.transition = 'width 1.5s ease-out';
-                        progressBar.style.width = targetWidth + '%';
-                    }, 100);
-                    
-                    observer.unobserve(progressBar);
+            try {
+                const response = await fetch('/api/dashboard', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-            });
-        }, observerOptions);
-        
-        progressBars.forEach(bar => {
-            observer.observe(bar);
+                const data = await response.json();
+                
+                window.dashboardData = data;
+                
+                if (data.user.role === 'parent') {
+                    this.setupChildSelection(data.family_members);
+                }
+                
+            } catch (error) {
+                console.error('Error fetching dashboard data:', error);
+                this.showNotification('Er is een fout opgetreden bij het laden van het dashboard.', 'danger');
+            }
+
+            this.setupBasicFeatures();
         });
     }
 
-    addRippleEffect(element, event) {
-        const ripple = document.createElement('span');
-        const rect = element.getBoundingClientRect();
-        const size = Math.max(rect.width, rect.height);
-        const x = event.clientX - rect.left - size / 2;
-        const y = event.clientY - rect.top - size / 2;
+    setupChildSelection(familyMembers) {
+        this.allChildren = familyMembers.filter(member => member.role === 'child');
         
-        ripple.style.cssText = `
-            position: absolute;
-            width: ${size}px;
-            height: ${size}px;
-            left: ${x}px;
-            top: ${y}px;
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            transform: scale(0);
-            animation: ripple 0.6s ease-out;
-            pointer-events: none;
-        `;
+        if (this.allChildren.length > 0) {
+            const childSelector = document.getElementById('child-selector');
+            if (childSelector) {
+                childSelector.classList.remove('d-none');
+                this.populateChildDropdown();
+                this.setupChildSelectionHandlers();
+            }
+        }
+    }
+
+    populateChildDropdown() {
+        const dropdownMenu = document.getElementById('child-dropdown-menu');
+        if (!dropdownMenu) return;
         
-        // Add ripple animation CSS if not already present
-        if (!document.querySelector('#ripple-styles')) {
-            const style = document.createElement('style');
-            style.id = 'ripple-styles';
-            style.textContent = `
-                @keyframes ripple {
-                    to {
-                        transform: scale(2);
-                        opacity: 0;
-                    }
-                }
+        const existingChildren = dropdownMenu.querySelectorAll('.child-option');
+        existingChildren.forEach(child => child.remove());
+        
+        this.allChildren.forEach(child => {
+            const childItem = document.createElement('li');
+            childItem.className = 'child-option';
+            childItem.innerHTML = `
+                <a class="dropdown-item" href="#" data-child-id="${child.id}">
+                    ${child.first_name} ${child.last_name}
+                    <span class="badge bg-secondary ms-2">${child.points} punten</span>
+                </a>
             `;
-            document.head.appendChild(style);
-        }
-        
-        element.style.position = 'relative';
-        element.style.overflow = 'hidden';
-        element.appendChild(ripple);
-        
-        setTimeout(() => {
-            ripple.remove();
-        }, 600);
+            dropdownMenu.appendChild(childItem);
+        });
     }
 
-    setButtonLoading(button, loading) {
-        if (loading) {
-            button.disabled = true;
-            const originalText = button.innerHTML;
-            button.dataset.originalText = originalText;
-            button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Laden...';
-        } else {
-            button.disabled = false;
-            if (button.dataset.originalText) {
-                button.innerHTML = button.dataset.originalText;
-                delete button.dataset.originalText;
+    setupChildSelectionHandlers() {
+        const dropdownItems = document.querySelectorAll('#child-dropdown-menu .dropdown-item');
+        
+        dropdownItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                
+                const childId = item.dataset.childId;
+                this.selectedChildId = childId;
+                
+                const selectedChildSpan = document.getElementById('selected-child');
+                if (selectedChildSpan) {
+                    const childName = item.textContent.trim().split('\n')[0].trim();
+                    selectedChildSpan.textContent = childName;
+                }
+                
+                dropdownItems.forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+                
+                this.filterDashboardData();
+                
+                const dropdownMenu = document.getElementById('child-dropdown-menu');
+                if (dropdownMenu) {
+                    dropdownMenu.classList.remove('show');
+                }
+            });
+        });
+    }
+
+    filterDashboardData() {
+        const selectedChild = this.selectedChildId === 'all' ? 
+            'alle kinderen' : 
+            this.allChildren.find(child => child.id.toString() === this.selectedChildId.toString())?.first_name || 'onbekend kind';
+        
+        this.showNotification(`Dashboard gefilterd voor: ${selectedChild}`, 'info');
+        this.updateDashboardFilter(selectedChild);
+    }
+
+    updateDashboardFilter(selectedChild) {
+        let filterIndicator = document.getElementById('filter-indicator');
+        if (!filterIndicator) {
+            filterIndicator = document.createElement('div');
+            filterIndicator.id = 'filter-indicator';
+            filterIndicator.className = 'alert alert-info';
+            
+            const alertContainer = document.getElementById('alert-container');
+            if (alertContainer) {
+                alertContainer.appendChild(filterIndicator);
             }
         }
+        
+        if (this.selectedChildId === 'all') {
+            filterIndicator.style.display = 'none';
+        } else {
+            filterIndicator.style.display = 'block';
+            filterIndicator.innerHTML = `
+                Dashboard wordt getoond voor: <strong>${selectedChild}</strong>
+                <button type="button" class="btn-close" onclick="this.parentElement.style.display='none'"></button>
+            `;
+        }
     }
 
-    showNotification(message, type = 'info', duration = 5000) {
-        const alertContainer = document.getElementById('alert-container') || document.body;
-        const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-        alertDiv.style.position = 'fixed';
-        alertDiv.style.top = '20px';
-        alertDiv.style.right = '20px';
-        alertDiv.style.zIndex = '9999';
-        alertDiv.style.minWidth = '300px';
+    setupBasicFeatures() {
+        // Setup basic dropdown functionality
+        const dropdownToggleButtons = document.querySelectorAll('.dropdown-toggle');
         
-        alertDiv.innerHTML = `
-            <div class="d-flex align-items-center">
-                <div class="me-2">
-                    ${this.getAlertIcon(type)}
-                </div>
-                <div class="flex-grow-1">
-                    ${message}
-                </div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        `;
+        dropdownToggleButtons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const targetId = button.getAttribute('data-bs-target') || button.getAttribute('href');
+                const targetMenu = document.querySelector(targetId);
+                
+                if (targetMenu) {
+                    targetMenu.classList.toggle('show');
+                    button.setAttribute('aria-expanded', targetMenu.classList.contains('show'));
+                }
+            });
+        });
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.dropdown')) {
+                const openDropdowns = document.querySelectorAll('.dropdown-menu.show');
+                openDropdowns.forEach(dropdown => {
+                    dropdown.classList.remove('show');
+                    const toggle = dropdown.previousElementSibling;
+                    if (toggle) {
+                        toggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
+        });
+    }
+
+    showNotification(message, type = 'info', duration = 3000) {
+        const alertContainer = document.getElementById('alert-container');
+        if (!alertContainer) return;
+
+        const alertElement = document.createElement('div');
+        alertElement.className = `alert alert-${type}`;
+        alertElement.textContent = message;
         
-        alertContainer.appendChild(alertDiv);
+        alertContainer.appendChild(alertElement);
         
-        // Auto-dismiss
         setTimeout(() => {
-            if (alertDiv.parentNode) {
-                alertDiv.remove();
+            if (alertElement.parentNode) {
+                alertElement.parentNode.removeChild(alertElement);
             }
         }, duration);
     }
 
-    getAlertIcon(type) {
-        const icons = {
-            success: '<i class="fas fa-check-circle text-success"></i>',
-            danger: '<i class="fas fa-exclamation-circle text-danger"></i>',
-            warning: '<i class="fas fa-exclamation-triangle text-warning"></i>',
-            info: '<i class="fas fa-info-circle text-info"></i>'
-        };
-        return icons[type] || icons.info;
-    }
-
-    easeOutCubic(t) {
-        return 1 - Math.pow(1 - t, 3);
-    }
-
-    // Static methods for global use
     static init() {
         return new DashboardManager();
     }
 }
 
-// Initialize dashboard manager
-const dashboardManager = DashboardManager.init(); 
+// Initialize dashboard when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        DashboardManager.init();
+    });
+} else {
+    DashboardManager.init();
+} 

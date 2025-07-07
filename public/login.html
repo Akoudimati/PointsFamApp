@@ -8,11 +8,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="/css/light-theme.css" id="theme-stylesheet">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="alternate icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body class="login-page">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
         <div class="container">
             <a class="navbar-brand" href="/">
                 <i class="fas fa-star me-2"></i>
@@ -30,7 +32,7 @@
         <div class="row w-100">
             <div class="col-md-6 col-lg-4 mx-auto">
                 <div class="card shadow-lg">
-                    <div class="card-header bg-primary text-white text-center">
+                    <div class="card-header bg-dark text-white text-center">
                         <h3 class="mb-0">
                             <i class="fas fa-sign-in-alt me-2"></i>
                             Inloggen
@@ -101,9 +103,40 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/theme-switcher.js"></script>
+    <!-- Footer -->
+    <footer class="footer mt-5 py-4 bg-light border-top">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <p class="mb-0 text-muted">
+                        <i class="fas fa-heart text-danger me-1"></i>
+                        Made by <strong>Abdullah Koudimati</strong> for <strong>Samen ICT</strong>
+                    </p>
+                    <small class="text-muted">© 2025 PointsFam - Family Task Management System</small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script src="/js/theme-switcher.js" defer></script>
     <script>
+        // Cache busting function
+        function addCacheBuster() {
+            const timestamp = Date.now();
+            const cssLinks = document.querySelectorAll('link[rel="stylesheet"]');
+            cssLinks.forEach(link => {
+                if (link.href.includes('/css/')) {
+                    const url = new URL(link.href);
+                    url.searchParams.set('v', timestamp);
+                    link.href = url.toString();
+                }
+            });
+        }
+        
+        // Apply cache busting immediately
+        addCacheBuster();
+        
         // Check if user is already logged in
         fetch('/api/user')
             .then(response => {

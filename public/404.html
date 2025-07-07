@@ -5,12 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pagina niet gevonden - PointsFam</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="/css/light-theme.css" id="theme-stylesheet">
-    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="alternate icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body class="error-page">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
         <div class="container">
             <a class="navbar-brand" href="/">
                 <i class="fas fa-star me-2"></i>
@@ -27,10 +31,10 @@
     <div class="container-fluid vh-100 d-flex align-items-center justify-content-center">
         <div class="text-center">
             <div class="error-icon mb-4">
-                <i class="fas fa-exclamation-triangle text-warning" style="font-size: 6rem;"></i>
+                <i class="fas fa-exclamation-triangle text-secondary" style="font-size: 6rem;"></i>
             </div>
             
-            <h1 class="display-1 fw-bold text-primary">404</h1>
+            <h1 class="display-1 fw-bold text-dark">404</h1>
             <h2 class="mb-4">Pagina niet gevonden</h2>
             <p class="lead mb-4 text-muted">
                 Oeps! De pagina die je zoekt bestaat niet of is verplaatst.
@@ -51,7 +55,7 @@
                 <div class="card mx-auto" style="max-width: 500px;">
                     <div class="card-body">
                         <h5 class="card-title">
-                            <i class="fas fa-lightbulb me-2 text-warning"></i>
+                            <i class="fas fa-lightbulb me-2 text-secondary"></i>
                             Wat kun je doen?
                         </h5>
                         <ul class="list-unstyled text-start">
@@ -78,8 +82,39 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://kit.fontawesome.com/your-fontawesome-kit.js" crossorigin="anonymous"></script>
-    <script src="/js/theme-switcher.js"></script>
+    <!-- Footer -->
+    <footer class="footer mt-5 py-4 bg-light border-top">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <p class="mb-0 text-muted">
+                        <i class="fas fa-heart text-danger me-1"></i>
+                        Made by <strong>Abdullah Koudimati</strong> for <strong>Samen ICT</strong>
+                    </p>
+                    <small class="text-muted">© 2025 PointsFam - Family Task Management System</small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script src="/js/theme-switcher.js" defer></script>
+    <script>
+        // Cache busting function
+        function addCacheBuster() {
+            const timestamp = Date.now();
+            const cssLinks = document.querySelectorAll('link[rel="stylesheet"]');
+            cssLinks.forEach(link => {
+                if (link.href.includes('/css/')) {
+                    const url = new URL(link.href);
+                    url.searchParams.set('v', timestamp);
+                    link.href = url.toString();
+                }
+            });
+        }
+        
+        // Apply cache busting immediately
+        addCacheBuster();
+    </script>
 </body>
 </html> 

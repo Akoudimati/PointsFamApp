@@ -8,17 +8,31 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/css/style.css">
     <link rel="stylesheet" href="/css/light-theme.css" id="theme-stylesheet">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <link rel="alternate icon" href="/favicon.ico" type="image/x-icon">
 </head>
 <body class="dashboard-page">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
         <div class="container">
             <a class="navbar-brand" href="/">
                 <i class="fas fa-star me-2"></i>
                 PointsFam
             </a>
             <div class="navbar-nav ms-auto">
+                <!-- Child Selection Dropdown (only visible for parents) -->
+                <div class="dropdown me-3 d-none" id="child-selector">
+                    <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" id="childDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-child me-1"></i>
+                        <span id="selected-child">Alle kinderen</span>
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="childDropdown" id="child-dropdown-menu">
+                        <li><a class="dropdown-item active" href="#" data-child-id="all">Alle kinderen</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <!-- Children will be populated here -->
+                    </ul>
+                </div>
                 <span class="navbar-text me-3" id="user-info">
                     <i class="fas fa-user me-1"></i>
                     <span id="user-name">Laden...</span>
@@ -37,7 +51,7 @@
     <div class="container-fluid py-4">
         <div id="alert-container"></div>
         <div id="loading-container" class="text-center py-5">
-            <div class="spinner-border text-primary" role="status">
+            <div class="spinner-border text-dark" role="status">
                 <span class="visually-hidden">Laden...</span>
             </div>
             <p class="mt-3">Dashboard wordt geladen...</p>
@@ -47,7 +61,7 @@
         <div id="parent-dashboard" class="d-none">
             <div class="row mb-4">
                 <div class="col-12">
-                    <h2 class="text-primary">
+                    <h2 class="text-dark">
                         <i class="fas fa-home me-2"></i>
                         Ouder Dashboard
                     </h2>
@@ -63,8 +77,9 @@
                             <h5 class="mb-0">
                                 <i class="fas fa-users me-2"></i>
                                 Gezinsoverzicht
+                                <span class="badge bg-dark ms-2" id="total-children-notifications">0</span>
                             </h5>
-                            <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                            <button class="btn btn-outline-dark btn-sm" data-bs-toggle="modal" data-bs-target="#addUserModal">
                                 <i class="fas fa-user-plus me-1"></i>
                                 Gebruiker Toevoegen
                             </button>
@@ -78,20 +93,90 @@
                 </div>
             </div>
 
-            <!-- Pending Approvals -->
+            <!-- Task Status Overview -->
             <div class="row mb-4">
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0">
-                                <i class="fas fa-clock me-2"></i>
-                                Wachtende Goedkeuringen
+                                <i class="fas fa-tasks me-2"></i>
+                                Taak Status Overzicht
                             </h5>
-                            <span class="badge bg-warning" id="pending-count">0</span>
+                            <button class="btn btn-outline-primary btn-sm" onclick="refreshDashboard()" title="Vernieuw overzicht">
+                                <i class="fas fa-sync-alt"></i>
+                                Vernieuwen
+                            </button>
                         </div>
                         <div class="card-body">
-                            <div id="pending-tasks">
-                                <!-- Pending tasks will be populated here -->
+                            <!-- Tabs for different statuses -->
+                            <ul class="nav nav-tabs" id="taskStatusTabs" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending-pane" type="button" role="tab">
+                                        <i class="fas fa-clock me-1"></i>
+                                        Wachtend voor Goedkeuring <span class="badge bg-secondary ms-1" id="pending-count">0</span>
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="approved-tab" data-bs-toggle="tab" data-bs-target="#approved-pane" type="button" role="tab">
+                                        <i class="fas fa-check-circle me-1"></i>
+                                        Goedgekeurd <span class="badge bg-success ms-1" id="approved-count">0</span>
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="rejected-tab" data-bs-toggle="tab" data-bs-target="#rejected-pane" type="button" role="tab">
+                                        <i class="fas fa-times-circle me-1"></i>
+                                        Afgewezen <span class="badge bg-danger ms-1" id="rejected-count">0</span>
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="refused-tab" data-bs-toggle="tab" data-bs-target="#refused-pane" type="button" role="tab">
+                                        <i class="fas fa-ban me-1"></i>
+                                        Geweigerd door Kind <span class="badge bg-warning ms-1" id="refused-count">0</span>
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="assigned-tab" data-bs-toggle="tab" data-bs-target="#assigned-pane" type="button" role="tab">
+                                        <i class="fas fa-hourglass-half me-1"></i>
+                                        Wachtend op Actie <span class="badge bg-info ms-1" id="assigned-count">0</span>
+                                    </button>
+                                </li>
+                            </ul>
+                            
+                            <div class="tab-content mt-3" id="taskStatusTabContent">
+                                <!-- Pending Approval Tab -->
+                                <div class="tab-pane fade show active" id="pending-pane" role="tabpanel">
+                                    <div id="pending-tasks">
+                                        <!-- Pending tasks will be populated here -->
+                                    </div>
+                                </div>
+                                
+                                <!-- Approved Tab -->
+                                <div class="tab-pane fade" id="approved-pane" role="tabpanel">
+                                    <div id="approved-tasks">
+                                        <!-- Approved tasks will be populated here -->
+                                    </div>
+                                </div>
+                                
+                                <!-- Rejected Tab -->
+                                <div class="tab-pane fade" id="rejected-pane" role="tabpanel">
+                                    <div id="rejected-tasks">
+                                        <!-- Rejected tasks will be populated here -->
+                                    </div>
+                                </div>
+                                
+                                <!-- Refused Tab -->
+                                <div class="tab-pane fade" id="refused-pane" role="tabpanel">
+                                    <div id="refused-tasks">
+                                        <!-- Refused tasks will be populated here -->
+                                    </div>
+                                </div>
+                                
+                                <!-- Assigned Tab -->
+                                <div class="tab-pane fade" id="assigned-pane" role="tabpanel">
+                                    <div id="assigned-tasks">
+                                        <!-- Assigned tasks will be populated here -->
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -183,13 +268,57 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Rewards Management -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-trophy me-2"></i>
+                                Beloningen Beheren
+                            </h5>
+                            <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addRewardModal">
+                                <i class="fas fa-plus me-1"></i>
+                                Beloning Toevoegen
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="rewards-management">
+                                <!-- Rewards management will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reward Redemptions History -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-history me-2"></i>
+                                Beloningen Geschiedenis
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="reward-redemptions">
+                                <!-- Reward redemptions will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
         </div>
 
         <!-- Child Dashboard -->
         <div id="child-dashboard" class="d-none">
             <div class="row mb-4">
                 <div class="col-12">
-                    <h2 class="text-primary">
+                    <h2 class="text-dark">
                         <i class="fas fa-child me-2"></i>
                         Kind Dashboard
                     </h2>
@@ -202,7 +331,7 @@
                 <div class="col-md-4">
                     <div class="card text-center">
                         <div class="card-body">
-                            <h3 class="text-primary" id="user-points">0</h3>
+                            <h3 class="text-dark" id="user-points">0</h3>
                             <p class="text-muted mb-0">Mijn Punten</p>
                         </div>
                     </div>
@@ -218,7 +347,7 @@
                 <div class="col-md-4">
                     <div class="card text-center">
                         <div class="card-body">
-                            <h3 class="text-warning" id="pending-tasks">0</h3>
+                            <h3 class="text-secondary" id="pending-tasks">0</h3>
                             <p class="text-muted mb-0">Wachtende Taken</p>
                         </div>
                     </div>
@@ -238,6 +367,26 @@
                         <div class="card-body">
                             <div id="child-tasks">
                                 <!-- Child tasks will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Approval Tasks -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-clock me-2"></i>
+                                Wachtend voor Goedkeuring
+                            </h5>
+                            <span class="badge bg-secondary" id="child-pending-count">0</span>
+                        </div>
+                        <div class="card-body">
+                            <div id="child-pending-tasks">
+                                <!-- Child pending approval tasks will be populated here -->
                             </div>
                         </div>
                     </div>
@@ -314,17 +463,261 @@
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/js/theme-switcher.js"></script>
+    <!-- Delete Task Modal -->
+    <div class="modal fade" id="deleteTaskModal" tabindex="-1" aria-labelledby="deleteTaskModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteTaskModalLabel">
+                        <i class="fas fa-trash text-danger me-2"></i>
+                        Taak Verwijderen
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Let op!</strong> Deze actie kan niet ongedaan worden gemaakt.
+                    </div>
+                    <p class="mb-3">Weet je zeker dat je deze taak wilt verwijderen?</p>
+                    <div class="bg-light p-3 rounded">
+                        <h6 class="mb-1">Taak:</h6>
+                        <p class="mb-0" id="delete-task-name"></p>
+                    </div>
+                    <input type="hidden" id="delete-assignment-id" value="">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Annuleren
+                    </button>
+                    <button type="button" class="btn btn-danger" onclick="confirmDeleteTask()">
+                        <i class="fas fa-trash me-2"></i>
+                        Ja, Verwijderen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cleanup Tasks Modal -->
+    <div class="modal fade" id="cleanupTasksModal" tabindex="-1" aria-labelledby="cleanupTasksModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cleanupTasksModalLabel">
+                        <i class="fas fa-broom text-secondary me-2"></i>
+                        Taken Opruimen
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Deze actie verwijdert voltooide en geweigerde taken uit je lijst.
+                    </div>
+                    <p class="mb-3">Wil je je takenlijst opruimen? De volgende taken worden verwijderd:</p>
+                    <div class="bg-light p-3 rounded mb-3">
+                        <h6 class="text-success mb-2">
+                            <i class="fas fa-check-circle me-1"></i>
+                            Voltooide taken (<span id="cleanup-approved-count">0</span>)
+                        </h6>
+                        <h6 class="text-secondary mb-2">
+                            <i class="fas fa-times-circle me-1"></i>
+                            Geweigerde taken (<span id="cleanup-declined-count">0</span>)
+                        </h6>
+                        <h6 class="text-danger mb-0">
+                            <i class="fas fa-ban me-1"></i>
+                            Afgewezen taken (<span id="cleanup-rejected-count">0</span>)
+                        </h6>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="cleanup-all-tasks" onchange="updateCleanupCounts()">
+                            <label class="form-check-label" for="cleanup-all-tasks">
+                                <strong>Ook alle nieuwe en actieve taken verwijderen</strong>
+                                <br><small class="text-muted">Hiermee verwijder je ALLE taken uit je lijst</small>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Let op!</strong> Deze actie kan niet ongedaan worden gemaakt.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Annuleren
+                    </button>
+                    <button type="button" class="btn btn-warning" onclick="confirmCleanupTasks()">
+                        <i class="fas fa-broom me-2"></i>
+                        Ja, Opruimen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Reward Modal -->
+    <div class="modal fade" id="addRewardModal" tabindex="-1" aria-labelledby="addRewardModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addRewardModalLabel">
+                        <i class="fas fa-trophy text-secondary me-2"></i>
+                        Nieuwe Beloning Toevoegen
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="add-reward-form">
+                        <div class="mb-3">
+                            <label for="reward-name" class="form-label">Beloning Naam <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="reward-name" required placeholder="Bijv. Extra schermtijd">
+                        </div>
+                        <div class="mb-3">
+                            <label for="reward-description" class="form-label">Beschrijving</label>
+                            <textarea class="form-control" id="reward-description" rows="3" placeholder="Beschrijf wat deze beloning inhoudt..."></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="reward-points" class="form-label">Punten Vereist <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="reward-points" min="1" max="1000" required placeholder="Hoeveel punten kost deze beloning?">
+                        </div>
+                        <div class="mb-3">
+                            <label for="reward-category" class="form-label">Categorie</label>
+                            <select class="form-select" id="reward-category">
+                                <option value="entertainment">Entertainment</option>
+                                <option value="privileges">Privileges</option>
+                                <option value="treats">Treats</option>
+                                <option value="social">Social</option>
+                                <option value="materiaal">Materiaal</option>
+                                <option value="uitjes">Uitjes</option>
+                                <option value="eten">Eten</option>
+                                <option value="other">Anders</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Annuleren
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="addReward()">
+                        <i class="fas fa-plus me-2"></i>
+                        Beloning Toevoegen
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Reward Modal -->
+    <div class="modal fade" id="editRewardModal" tabindex="-1" aria-labelledby="editRewardModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editRewardModalLabel">
+                        <i class="fas fa-edit text-primary me-2"></i>
+                        Beloning Bewerken
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="edit-reward-form">
+                        <div class="mb-3">
+                            <label for="edit-reward-name" class="form-label">Beloning Naam <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="edit-reward-name" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-reward-description" class="form-label">Beschrijving</label>
+                            <textarea class="form-control" id="edit-reward-description" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-reward-points" class="form-label">Punten Vereist <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="edit-reward-points" min="1" max="1000" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit-reward-category" class="form-label">Categorie</label>
+                            <select class="form-select" id="edit-reward-category">
+                                <option value="entertainment">Entertainment</option>
+                                <option value="privileges">Privileges</option>
+                                <option value="treats">Treats</option>
+                                <option value="social">Social</option>
+                                <option value="materiaal">Materiaal</option>
+                                <option value="uitjes">Uitjes</option>
+                                <option value="eten">Eten</option>
+                                <option value="other">Anders</option>
+                            </select>
+                        </div>
+                        <input type="hidden" id="edit-reward-id">
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Annuleren
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="updateReward()">
+                        <i class="fas fa-save me-2"></i>
+                        Wijzigingen Opslaan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer mt-5 py-4 bg-light border-top">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <p class="mb-0 text-muted">
+                        <i class="fas fa-heart text-danger me-1"></i>
+                        Made by <strong>Abdullah Koudimati</strong> for <strong>Samen ICT</strong>
+                    </p>
+                    <small class="text-muted">© 2025 PointsFam - Family Task Management System</small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script src="/js/theme-switcher.js" defer></script>
     <script>
+        // Cache busting function
+        function addCacheBuster() {
+            const timestamp = Date.now();
+            const cssLinks = document.querySelectorAll('link[rel="stylesheet"]');
+            cssLinks.forEach(link => {
+                if (link.href.includes('/css/')) {
+                    const url = new URL(link.href);
+                    url.searchParams.set('v', timestamp);
+                    link.href = url.toString();
+                }
+            });
+        }
+        
+        // Apply cache busting immediately
+        addCacheBuster();
+        
         let currentUser = null;
         let dashboardData = null;
+        let isLoading = false;
 
-        // Initialize dashboard
+        // Initialize dashboard with performance optimizations
         async function initDashboard() {
+            if (isLoading) return;
+            isLoading = true;
+
             try {
-                // Check if user is logged in
-                const userResponse = await fetch('/api/user');
+                // Single API call to get both user and dashboard data
+                const [userResponse, dashboardResponse] = await Promise.all([
+                    fetch('/api/user', { credentials: 'include' }),
+                    fetch('/api/dashboard', { credentials: 'include' })
+                ]);
+
                 if (!userResponse.ok) {
                     window.location.href = '/login';
                     return;
@@ -334,10 +727,11 @@
                 currentUser = userData.user;
                 
                 // Update user info in navbar
-                document.getElementById('user-name').textContent = currentUser.firstName + ' ' + currentUser.lastName;
+                const userNameElement = document.getElementById('user-name');
+                if (userNameElement) {
+                    userNameElement.textContent = `${currentUser.firstName} ${currentUser.lastName}`;
+                }
 
-                // Load dashboard data
-                const dashboardResponse = await fetch('/api/dashboard');
                 if (!dashboardResponse.ok) {
                     throw new Error('Failed to load dashboard data');
                 }
@@ -348,23 +742,57 @@
                 document.getElementById('loading-container').classList.add('d-none');
                 
                 if (dashboardData.type === 'parent') {
-                    showParentDashboard();
+                    await showParentDashboard();
                 } else {
                     showChildDashboard();
                 }
             } catch (error) {
                 console.error('Dashboard initialization error:', error);
                 showAlert('Er is een fout opgetreden bij het laden van het dashboard.', 'danger');
+            } finally {
+                isLoading = false;
             }
         }
 
+        // Load profile images for family members
+        async function loadFamilyMemberImages(familyMembers) {
+            const memberImages = {};
+            
+            // Load images for all family members in parallel
+            const imagePromises = familyMembers.map(async (member) => {
+                try {
+                    const response = await fetch(`/api/profile-images/user/${member.id}`, {
+                        credentials: 'include'
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.image && data.image.image_path) {
+                            memberImages[member.id] = data.image.image_path;
+                        }
+                    }
+                } catch (error) {
+                    console.log(`No image found for ${member.first_name} ${member.last_name}`);
+                }
+            });
+            
+            await Promise.allSettled(imagePromises);
+            return memberImages;
+        }
+
         // Show parent dashboard
-        function showParentDashboard() {
+        async function showParentDashboard() {
             document.getElementById('parent-dashboard').classList.remove('d-none');
             
             // Populate family members
             const familyMembersContainer = document.getElementById('family-members');
             familyMembersContainer.innerHTML = '';
+            
+            // Load profile images for all family members
+            const memberImages = await loadFamilyMemberImages(dashboardData.familyMembers);
+            
+            // Calculate total notifications for all children
+            let totalChildrenNotifications = 0;
             
             dashboardData.familyMembers.forEach(member => {
                 const memberCard = document.createElement('div');
@@ -386,23 +814,48 @@
                     </div>
                 ` : '';
                 
+                // Calculate notifications for this child
+                const childNotifications = member.role === 'child' ? 
+                    (member.pending_tasks + member.new_tasks + member.completed_tasks) : 0;
+                
+                // Add to total if this is a child
+                if (member.role === 'child') {
+                    totalChildrenNotifications += childNotifications;
+                }
+                
+                // Get profile image for this member
+                const profileImage = memberImages[member.id];
+                const profileImageHtml = profileImage ? 
+                    `<img src="${profileImage}" class="rounded-circle profile-image" style="width: 60px; height: 60px; object-fit: cover; border: 3px solid #007bff; box-shadow: 0 2px 8px rgba(0,0,0,0.1);" alt="${member.first_name} ${member.last_name}">` :
+                    `<div class="profile-placeholder rounded-circle" style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: 3px solid #007bff; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                        <i class="${roleIcon} text-white" style="font-size: 22px;"></i>
+                    </div>`;
+                
                 memberCard.innerHTML = `
                     <div class="card">
-                        <div class="card-body text-center">
-                            <div class="mb-2">
-                                <i class="${roleIcon} fa-2x text-muted"></i>
+                        <div class="card-body">
+                            <div class="profile-image-container">
+                                ${profileImageHtml}
+                                ${member.role === 'child' && childNotifications > 0 ? `
+                                    <span class="badge bg-danger">${childNotifications}</span>
+                                ` : ''}
                             </div>
                             <h5 class="card-title">${member.first_name} ${member.last_name}</h5>
-                            <p class="card-text">
+                            <div class="card-text">
                                 <span class="badge ${roleBadge}">${roleText}</span>
-                                ${member.role === 'child' ? `<br><span class="badge bg-primary mt-1">${member.points} punten</span>` : ''}
-                            </p>
-                            ${member.role === 'child' ? `
-                                <small class="text-muted">
-                                    ${member.completed_tasks} voltooid | ${member.pending_tasks} wachtend
-                                </small>
-                            ` : ''}
-                            ${managementButtons}
+                                ${member.role === 'child' ? `<br><span class="badge bg-dark mt-1">${member.points} punten</span>` : ''}
+                                ${member.role === 'child' && childNotifications > 0 ? `
+                                    <br><span class="badge bg-secondary mt-1">
+                                        <i class="fas fa-bell me-1"></i>${childNotifications} meldingen
+                                    </span>
+                                ` : ''}
+                                ${member.role === 'child' ? `
+                                    <br><small class="text-muted mt-2">
+                                        ${member.completed_tasks} voltooid | ${member.pending_tasks} wachtend
+                                    </small>
+                                ` : ''}
+                            </div>
+                            ${managementButtons ? `<div class="management-buttons">${managementButtons}</div>` : ''}
                         </div>
                     </div>
                 `;
@@ -416,50 +869,21 @@
                     document.getElementById('bonus-child').appendChild(option);
                 }
             });
-
-            // Populate pending tasks
-            const pendingTasksContainer = document.getElementById('pending-tasks');
-            const pendingCount = document.getElementById('pending-count');
             
-            if (dashboardData.pendingTasks.length === 0) {
-                pendingTasksContainer.innerHTML = '<p class="text-muted">Geen wachtende goedkeuringen.</p>';
-                pendingCount.textContent = '0';
-            } else {
-                pendingCount.textContent = dashboardData.pendingTasks.length;
-                pendingTasksContainer.innerHTML = '';
-                
-                dashboardData.pendingTasks.forEach(task => {
-                    const taskCard = document.createElement('div');
-                    taskCard.className = 'card mb-3';
-                    taskCard.innerHTML = `
-                        <div class="card-body">
-                            <div class="row align-items-center">
-                                <div class="col-md-6">
-                                    <h6 class="card-title mb-1">${task.name}</h6>
-                                    <p class="card-text text-muted mb-0">
-                                        Door: ${task.first_name} ${task.last_name}
-                                    </p>
-                                    <small class="text-muted">
-                                        Voltooid: ${new Date(task.completed_at).toLocaleString('nl-NL')}
-                                    </small>
-                                </div>
-                                <div class="col-md-3 text-center">
-                                    <span class="badge bg-warning">${task.points} punten</span>
-                                </div>
-                                <div class="col-md-3 text-end">
-                                    <button class="btn btn-success btn-sm me-2" onclick="approveTask(${task.assignment_id}, ${task.points})">
-                                        <i class="fas fa-check"></i> Goedkeuren
-                                    </button>
-                                    <button class="btn btn-danger btn-sm" onclick="rejectTask(${task.assignment_id})">
-                                        <i class="fas fa-times"></i> Afwijzen
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    pendingTasksContainer.appendChild(taskCard);
-                });
+            // Update total children notifications badge
+            const totalChildrenNotificationsElement = document.getElementById('total-children-notifications');
+            if (totalChildrenNotificationsElement) {
+                totalChildrenNotificationsElement.textContent = totalChildrenNotifications;
+                if (totalChildrenNotifications > 0) {
+                    totalChildrenNotificationsElement.classList.remove('d-none');
+                    totalChildrenNotificationsElement.classList.add('badge-pulse');
+                } else {
+                    totalChildrenNotificationsElement.classList.add('d-none');
+                }
             }
+
+            // Populate task status overview
+            populateTaskStatusOverview(dashboardData.allTaskAssignments || []);
 
             // Populate open tasks for assignment
             const openTasksContainer = document.getElementById('open-tasks');
@@ -497,30 +921,9 @@
                                 </div>
                                 <div class="col-md-3 text-end">
                                     <div class="btn-group" role="group">
-                                        <div class="dropdown">
-                                            <button class="btn btn-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                                                <i class="fas fa-user-plus"></i> Toewijzen
-                                            </button>
-                                            <ul class="dropdown-menu">
-                                                <li><a class="dropdown-item fw-bold text-success" href="#" onclick="assignTaskToAll(${task.id})">
-                                                    <i class="fas fa-users"></i> Alle kinderen
-                                                </a></li>
-                                                ${dashboardData.familyMembers.filter(m => m.role === 'child').length > 1 ? `
-                                                <li><a class="dropdown-item fw-bold text-primary" href="#" onclick="assignTaskToFirst(${task.id})">
-                                                    <i class="fas fa-user-graduate"></i> Eerste kind
-                                                </a></li>
-                                                <li><a class="dropdown-item fw-bold text-info" href="#" onclick="assignTaskToRest(${task.id})">
-                                                    <i class="fas fa-user-friends"></i> Rest van de kinderen
-                                                </a></li>
-                                                ` : ''}
-                                                <li><hr class="dropdown-divider"></li>
-                                                ${dashboardData.familyMembers.filter(m => m.role === 'child').map((child, index) => 
-                                                    `<li><a class="dropdown-item" href="#" onclick="assignTask(${task.id}, ${child.id}, '${child.first_name} ${child.last_name}')">
-                                                        <i class="fas fa-user"></i> ${child.first_name} ${child.last_name}${index === 0 ? ' (Eerste)' : ''}
-                                                    </a></li>`
-                                                ).join('')}
-                                            </ul>
-                                        </div>
+                                        <button class="btn btn-primary btn-sm" onclick="openAssignModal(${task.id})" title="Taak toewijzen">
+                                            <i class="fas fa-user-plus"></i> Toewijzen
+                                        </button>
                                         <button class="btn btn-outline-danger btn-sm" onclick="cancelTask(${task.id}, '${task.name}')" title="Taak annuleren">
                                             <i class="fas fa-trash"></i>
                                         </button>
@@ -532,6 +935,174 @@
                     openTasksContainer.appendChild(taskCard);
                 });
             }
+            
+            // Populate rewards management
+            populateRewardsManagement();
+            
+            // Load reward redemptions (only for parents)
+            if (dashboardData.type === 'parent') {
+                loadRewardRedemptions();
+            }
+        }
+
+        // Populate task status overview with all task assignments
+        function populateTaskStatusOverview(allTaskAssignments) {
+            // Categorize tasks by status
+            const pendingTasks = allTaskAssignments.filter(task => task.status === 'completed');
+            const approvedTasks = allTaskAssignments.filter(task => task.status === 'approved');
+            const rejectedTasks = allTaskAssignments.filter(task => task.status === 'rejected');
+            const refusedTasks = allTaskAssignments.filter(task => task.status === 'declined');
+            const assignedTasks = allTaskAssignments.filter(task => task.status === 'assigned' || task.status === 'accepted');
+
+            // Update tab badges
+            document.getElementById('pending-count').textContent = pendingTasks.length;
+            document.getElementById('approved-count').textContent = approvedTasks.length;
+            document.getElementById('rejected-count').textContent = rejectedTasks.length;
+            document.getElementById('refused-count').textContent = refusedTasks.length;
+            document.getElementById('assigned-count').textContent = assignedTasks.length;
+
+            // Populate pending tasks (waiting for approval)
+            populateTasksContainer('pending-tasks', pendingTasks, 'pending');
+            
+            // Populate approved tasks
+            populateTasksContainer('approved-tasks', approvedTasks, 'approved');
+            
+            // Populate rejected tasks
+            populateTasksContainer('rejected-tasks', rejectedTasks, 'rejected');
+            
+            // Populate refused tasks
+            populateTasksContainer('refused-tasks', refusedTasks, 'refused');
+            
+            // Populate assigned tasks
+            populateTasksContainer('assigned-tasks', assignedTasks, 'assigned');
+        }
+
+        // Helper function to populate a task container
+        function populateTasksContainer(containerId, tasks, type) {
+            const container = document.getElementById(containerId);
+            
+            if (tasks.length === 0) {
+                let emptyMessage = '';
+                switch(type) {
+                    case 'pending':
+                        emptyMessage = 'Geen taken wachtend op goedkeuring.';
+                        break;
+                    case 'approved':
+                        emptyMessage = 'Geen goedgekeurde taken.';
+                        break;
+                    case 'rejected':
+                        emptyMessage = 'Geen afgewezen taken.';
+                        break;
+                    case 'refused':
+                        emptyMessage = 'Geen door kinderen geweigerde taken.';
+                        break;
+                    case 'assigned':
+                        emptyMessage = 'Geen taken wachtend op actie van kinderen.';
+                        break;
+                }
+                container.innerHTML = `<p class="text-muted">${emptyMessage}</p>`;
+                return;
+            }
+            
+            container.innerHTML = '';
+            
+            tasks.forEach(task => {
+                const taskCard = document.createElement('div');
+                taskCard.className = 'card mb-3';
+                
+                let actionButtons = '';
+                let statusInfo = '';
+                let pointsDisplay = '';
+                
+                switch(type) {
+                    case 'pending':
+                        statusInfo = `<small class="text-muted">Voltooid: ${new Date(task.completed_at).toLocaleString('nl-NL')}</small>`;
+                        pointsDisplay = `<span class="badge bg-secondary">${task.points} punten</span>`;
+                        actionButtons = `
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-success btn-sm" onclick="approveTask(${task.assignment_id}, ${task.points})">
+                                    <i class="fas fa-check"></i> Goedkeuren
+                                </button>
+                                <button class="btn btn-danger btn-sm" onclick="rejectTask(${task.assignment_id})">
+                                    <i class="fas fa-times"></i> Afwijzen
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteTask(${task.assignment_id}, '${task.task_name}')" title="Taak verwijderen">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                        break;
+                    case 'approved':
+                        statusInfo = `<small class="text-success">Goedgekeurd: ${new Date(task.completed_at).toLocaleString('nl-NL')}</small>`;
+                        pointsDisplay = `<span class="badge bg-success">${task.points_awarded || task.points} punten toegekend</span>`;
+                        actionButtons = `
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="text-success"><i class="fas fa-check-circle"></i> Voltooid</span>
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteTask(${task.assignment_id}, '${task.task_name}')" title="Taak verwijderen">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                        break;
+                    case 'rejected':
+                        statusInfo = `<small class="text-danger">Afgewezen: ${new Date(task.completed_at).toLocaleString('nl-NL')}</small>`;
+                        pointsDisplay = `<span class="badge bg-danger">Geen punten</span>`;
+                        actionButtons = `
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="text-danger"><i class="fas fa-times-circle"></i> Afgewezen</span>
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteTask(${task.assignment_id}, '${task.task_name}')" title="Taak verwijderen">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                        break;
+                    case 'refused':
+                        statusInfo = `<small class="text-warning">Geweigerd: ${new Date(task.assigned_at).toLocaleString('nl-NL')}</small>`;
+                        pointsDisplay = `<span class="badge bg-warning">${task.points} punten (niet verdiend)</span>`;
+                        actionButtons = `
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="text-warning"><i class="fas fa-ban"></i> Geweigerd door kind</span>
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteTask(${task.assignment_id}, '${task.task_name}')" title="Taak verwijderen">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                        break;
+                    case 'assigned':
+                        statusInfo = `<small class="text-info">Toegewezen: ${new Date(task.assigned_at).toLocaleString('nl-NL')}</small>`;
+                        pointsDisplay = `<span class="badge bg-info">${task.points} punten</span>`;
+                        actionButtons = `
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="text-info"><i class="fas fa-hourglass-half"></i> ${task.status === 'accepted' ? 'Geaccepteerd' : 'Wacht op acceptatie'}</span>
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteTask(${task.assignment_id}, '${task.task_name}')" title="Taak verwijderen">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                        break;
+                }
+                
+                taskCard.innerHTML = `
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <h6 class="card-title mb-1">${task.task_name}</h6>
+                                <p class="card-text text-muted mb-0">
+                                    Door: ${task.first_name} ${task.last_name}
+                                </p>
+                                ${statusInfo}
+                            </div>
+                            <div class="col-md-3 text-center">
+                                ${pointsDisplay}
+                            </div>
+                            <div class="col-md-3 text-end">
+                                ${actionButtons}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(taskCard);
+            });
         }
 
         // Show child dashboard
@@ -575,33 +1146,63 @@
                                 <button class="btn btn-outline-danger btn-sm" onclick="rejectTaskChild(${task.assignment_id})" title="Taak weigeren">
                                     <i class="fas fa-times"></i> Weigeren
                                 </button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteTask(${task.assignment_id}, '${task.name}')" title="Taak verwijderen">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>`;
                             break;
                         case 'accepted':
-                            statusBadge = '<span class="badge bg-primary">Geaccepteerd</span>';
-                            actionButton = `<button class="btn btn-success btn-sm" onclick="completeTask(${task.assignment_id})">
-                                <i class="fas fa-check"></i> Voltooien
-                            </button>`;
+                            statusBadge = '<span class="badge bg-dark">Geaccepteerd</span>';
+                            actionButton = `<div class="btn-group" role="group">
+                                <button class="btn btn-success btn-sm" onclick="completeTask(${task.assignment_id})">
+                                    <i class="fas fa-check"></i> Voltooien
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteTask(${task.assignment_id}, '${task.name}')" title="Taak verwijderen">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>`;
                             break;
                         case 'completed':
-                            statusBadge = '<span class="badge bg-warning">Wacht op goedkeuring</span>';
-                            actionButton = '<span class="text-muted">Wacht op goedkeuring...</span>';
+                            statusBadge = '<span class="badge bg-secondary">Wacht op goedkeuring</span>';
+                            actionButton = `<div class="d-flex align-items-center gap-2">
+                                <span class="text-muted">Wacht op goedkeuring...</span>
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteTask(${task.assignment_id}, '${task.name}')" title="Taak verwijderen">
+                                    <i class="fas fa-trash text-danger"></i>
+                                </button>
+                            </div>`;
                             break;
                         case 'approved':
-                            statusBadge = '<span class="badge bg-success">Goedgekeurd</span>';
-                            actionButton = `<span class="text-success">
-                                <i class="fas fa-check-circle"></i> +${task.points_awarded} punten
-                            </span>`;
+                            statusBadge = '<span class="badge bg-success">Voltooid</span>';
+                            actionButton = `<div class="d-flex align-items-center gap-2">
+                                <span class="text-success">
+                                    <i class="fas fa-check-circle"></i> +${task.points_awarded || task.points} punten
+                                </span>
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteTask(${task.assignment_id}, '${task.name}')" title="Taak verwijderen">
+                                    <i class="fas fa-trash text-danger"></i>
+                                </button>
+                            </div>`;
                             break;
                         case 'rejected':
                             statusBadge = '<span class="badge bg-danger">Afgewezen</span>';
-                            actionButton = '<span class="text-danger">Probeer opnieuw</span>';
+                            actionButton = `<div class="d-flex align-items-center gap-2">
+                                <button class="btn btn-warning btn-sm" onclick="retryTask(${task.assignment_id})" title="Taak opnieuw proberen">
+                                    <i class="fas fa-redo"></i> Probeer opnieuw
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteTask(${task.assignment_id}, '${task.name}')" title="Taak verwijderen">
+                                    <i class="fas fa-trash text-danger"></i>
+                                </button>
+                            </div>`;
                             break;
                         case 'declined':
                             statusBadge = '<span class="badge bg-secondary">Geweigerd</span>';
-                            actionButton = `<div class="text-muted">
-                                <small>Je hebt deze taak geweigerd</small>
-                                ${task.decline_reason ? `<br><small class="text-secondary"><i class="fas fa-comment me-1"></i>${task.decline_reason}</small>` : ''}
+                            actionButton = `<div class="d-flex align-items-center gap-2">
+                                <div class="text-muted">
+                                    <small>Je hebt deze taak geweigerd</small>
+                                    ${task.decline_reason ? `<br><small class="text-secondary"><i class="fas fa-comment me-1"></i>${task.decline_reason}</small>` : ''}
+                                </div>
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteTask(${task.assignment_id}, '${task.name}')" title="Taak verwijderen">
+                                    <i class="fas fa-trash text-danger"></i>
+                                </button>
                             </div>`;
                             break;
                         default:
@@ -613,6 +1214,9 @@
                                 </button>
                                 <button class="btn btn-outline-danger btn-sm" onclick="rejectTaskChild(${task.assignment_id})" title="Taak weigeren">
                                     <i class="fas fa-times"></i> Weigeren
+                                </button>
+                                <button class="btn btn-outline-danger btn-sm" onclick="deleteTask(${task.assignment_id}, '${task.name}')" title="Taak verwijderen">
+                                    <i class="fas fa-trash"></i>
                                 </button>
                             </div>`;
                             break;
@@ -640,6 +1244,52 @@
                 });
             }
 
+            // Populate pending approval tasks (separate section)
+            const pendingApprovalTasks = dashboardData.tasks.filter(t => t.status === 'completed');
+            const pendingApprovalContainer = document.getElementById('child-pending-tasks');
+            const pendingApprovalCount = document.getElementById('child-pending-count');
+            
+            pendingApprovalCount.textContent = pendingApprovalTasks.length;
+            
+            if (pendingApprovalTasks.length === 0) {
+                pendingApprovalContainer.innerHTML = '<p class="text-muted">Geen taken wachtend op goedkeuring.</p>';
+            } else {
+                pendingApprovalContainer.innerHTML = '';
+                
+                pendingApprovalTasks.forEach(task => {
+                    const taskCard = document.createElement('div');
+                    taskCard.className = 'card mb-3';
+                    
+                    taskCard.innerHTML = `
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <h6 class="card-title mb-1">${task.name}</h6>
+                                    <p class="card-text text-muted mb-0">${task.description || 'Geen beschrijving'}</p>
+                                    <small class="text-muted">Voltooid op: ${task.completed_at ? new Date(task.completed_at).toLocaleString('nl-NL') : 'Onbekend'}</small>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <span class="badge bg-warning">Wacht op goedkeuring</span>
+                                    <br>
+                                    <small class="text-muted">${task.points} punten mogelijk</small>
+                                </div>
+                                <div class="col-md-3 text-end">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="text-muted">
+                                            <i class="fas fa-clock"></i> Wachtend...
+                                        </span>
+                                        <button class="btn btn-outline-danger btn-sm" onclick="deleteTask(${task.assignment_id}, '${task.name}')" title="Taak verwijderen">
+                                            <i class="fas fa-trash text-danger"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    pendingApprovalContainer.appendChild(taskCard);
+                });
+            }
+
             // Populate family ranking
             const rankingContainer = document.getElementById('family-ranking');
             rankingContainer.innerHTML = '';
@@ -653,19 +1303,19 @@
                 rankingItem.className = 'd-flex justify-content-between align-items-center mb-2';
                 
                 let rankIcon = '';
-                if (index === 0) rankIcon = '<i class="fas fa-trophy text-warning me-2"></i>';
+                if (index === 0) rankIcon = '<i class="fas fa-trophy text-secondary me-2"></i>';
                 else if (index === 1) rankIcon = '<i class="fas fa-medal text-secondary me-2"></i>';
-                else if (index === 2) rankIcon = '<i class="fas fa-award text-warning me-2"></i>';
+                else if (index === 2) rankIcon = '<i class="fas fa-award text-secondary me-2"></i>';
                 else rankIcon = `<span class="me-2">${index + 1}.</span>`;
                 
                 const isCurrentUser = member.id === currentUser.id;
-                const highlightClass = isCurrentUser ? 'fw-bold text-primary' : '';
+                const highlightClass = isCurrentUser ? 'fw-bold text-dark' : '';
                 
                 rankingItem.innerHTML = `
                     <div class="${highlightClass}">
                         ${rankIcon}${member.first_name} ${member.last_name}
                     </div>
-                    <span class="badge bg-primary">${member.points}</span>
+                                                <span class="badge bg-dark">${member.points}</span>
                 `;
                 rankingContainer.appendChild(rankingItem);
             });
@@ -677,38 +1327,92 @@
             if (dashboardData.rewards.length === 0) {
                 rewardsContainer.innerHTML = '<p class="text-muted">Geen beloningen beschikbaar.</p>';
             } else {
-                dashboardData.rewards.slice(0, 3).forEach(reward => {
+                dashboardData.rewards.forEach(reward => {
                     const canAfford = currentUser.points >= reward.points_required;
                     const rewardItem = document.createElement('div');
-                    rewardItem.className = 'd-flex justify-content-between align-items-center mb-2';
+                    rewardItem.className = 'card mb-3';
                     rewardItem.innerHTML = `
-                        <div>
-                            <strong>${reward.name}</strong>
-                            <br>
-                            <small class="text-muted">${reward.points_required} punten</small>
+                        <div class="card-body">
+                            <div class="row align-items-center">
+                                <div class="col-md-6">
+                                    <h6 class="card-title mb-1">${reward.name}</h6>
+                                    <p class="card-text text-muted mb-0">${reward.description || 'Geen beschrijving'}</p>
+                                    <small class="text-muted">Categorie: ${reward.category}</small>
+                                </div>
+                                <div class="col-md-3 text-center">
+                                    <span class="badge bg-secondary">${reward.points_required} punten</span>
+                                </div>
+                                <div class="col-md-3 text-end">
+                                    <button class="btn btn-sm ${canAfford ? 'btn-success' : 'btn-outline-secondary'}" 
+                                            ${canAfford ? `onclick="redeemReward(${reward.id})"` : 'disabled'}>
+                                        ${canAfford ? 'Inwisselen' : 'Te duur'}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                        <button class="btn btn-sm ${canAfford ? 'btn-success' : 'btn-outline-secondary'}" 
-                                ${canAfford ? `onclick="redeemReward(${reward.id})"` : 'disabled'}>
-                            ${canAfford ? 'Inwisselen' : 'Te duur'}
-                        </button>
                     `;
                     rewardsContainer.appendChild(rewardItem);
                 });
             }
         }
 
+        // Dashboard refresh function
+        function refreshDashboard() {
+            showAlert('Overzicht wordt vernieuwd...', 'info');
+            setTimeout(() => location.reload(), 500);
+        }
+
         // Task actions
-        async function acceptTask(assignmentId) {
+        async function retryTask(assignmentId) {
             try {
-                const response = await fetch(`/api/assignments/${assignmentId}/accept`, {
+                const response = await fetch(`/api/assignments/${assignmentId}/retry`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include'
                 });
                 
                 const data = await response.json();
                 
                 if (response.ok) {
                     showAlert(data.message, 'success');
+                    // Refresh dashboard to show updated status
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Retry task error:', error);
+                showAlert('Er is een fout opgetreden bij het opnieuw proberen van de taak.', 'danger');
+            }
+        }
+
+        async function acceptTask(assignmentId) {
+            try {
+                const response = await fetch(`/api/assignments/${assignmentId}/accept`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Show success message with points earned
+                    if (data.points_earned) {
+                        showAlert(`🎉 ${data.message} Je hebt nu ${data.new_total} punten in totaal!`, 'success');
+                        
+                        // Update points display in navbar if exists
+                        const userPointsElement = document.getElementById('user-points');
+                        if (userPointsElement) {
+                            userPointsElement.textContent = data.new_total;
+                        }
+                        
+                        // Show celebration animation
+                        showPointsAnimation(data.points_earned);
+                    } else {
+                        showAlert(data.message, 'success');
+                    }
+                    
                     // Refresh dashboard
                     setTimeout(() => location.reload(), 1000);
                 } else {
@@ -716,8 +1420,77 @@
                 }
             } catch (error) {
                 console.error('Accept task error:', error);
-                showAlert('Er is een fout opgetreden.', 'danger');
+                showAlert('Er is een fout opgetreden bij het accepteren van de taak.', 'danger');
             }
+        }
+
+        // Show points animation
+        function showPointsAnimation(points) {
+            const animationElement = document.createElement('div');
+            animationElement.className = 'points-animation';
+            animationElement.innerHTML = `
+                <div class="points-popup">
+                    <i class="fas fa-star"></i>
+                    +${points} punten!
+                </div>
+            `;
+            
+            // Add CSS for animation
+            const style = document.createElement('style');
+            style.textContent = `
+                .points-animation {
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    z-index: 9999;
+                    pointer-events: none;
+                }
+                
+                .points-popup {
+                    background: linear-gradient(135deg, #28a745, #20c997);
+                    color: white;
+                    padding: 20px 30px;
+                    border-radius: 15px;
+                    font-size: 24px;
+                    font-weight: bold;
+                    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                    animation: pointsPopup 2s ease-out forwards;
+                    text-align: center;
+                }
+                
+                @keyframes pointsPopup {
+                    0% {
+                        transform: scale(0.5);
+                        opacity: 0;
+                    }
+                    20% {
+                        transform: scale(1.2);
+                        opacity: 1;
+                    }
+                    80% {
+                        transform: scale(1);
+                        opacity: 1;
+                    }
+                    100% {
+                        transform: scale(0.8);
+                        opacity: 0;
+                    }
+                }
+            `;
+            
+            document.head.appendChild(style);
+            document.body.appendChild(animationElement);
+            
+            // Remove animation after 2 seconds
+            setTimeout(() => {
+                if (animationElement.parentNode) {
+                    animationElement.parentNode.removeChild(animationElement);
+                }
+                if (style.parentNode) {
+                    style.parentNode.removeChild(style);
+                }
+            }, 2000);
         }
 
         async function rejectTaskChild(assignmentId) {
@@ -793,6 +1566,216 @@
             }
         }
 
+        // Delete task functionality
+        async function deleteTask(assignmentId, taskName) {
+            // Set up the modal with task details
+            document.getElementById('delete-assignment-id').value = assignmentId;
+            document.getElementById('delete-task-name').textContent = taskName;
+            
+            // Show the delete confirmation modal
+            const modal = new bootstrap.Modal(document.getElementById('deleteTaskModal'));
+            modal.show();
+        }
+
+        async function confirmDeleteTask() {
+            const assignmentId = document.getElementById('delete-assignment-id').value;
+            
+            if (!assignmentId) {
+                showAlert('Er is een fout opgetreden bij het verwijderen van de taak.', 'danger');
+                return;
+            }
+            
+            try {
+                console.log('Attempting to delete assignment:', assignmentId);
+                
+                const response = await fetch(`/api/assignments/${assignmentId}/delete`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include'
+                });
+                
+                console.log('Delete response status:', response.status);
+                
+                let data;
+                try {
+                    data = await response.json();
+                    console.log('Delete response data:', data);
+                } catch (parseError) {
+                    console.error('Failed to parse JSON response:', parseError);
+                    showAlert('Server gaf een ongeldig antwoord.', 'danger');
+                    return;
+                }
+                
+                if (response.ok) {
+                    // Close modal
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('deleteTaskModal'));
+                    if (modal) modal.hide();
+                    
+                    showAlert(data.message || 'Taak succesvol verwijderd!', 'success');
+                    // Refresh dashboard
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    const errorMessage = data.error || `HTTP ${response.status}: Er is een fout opgetreden bij het verwijderen.`;
+                    console.error('Delete error response:', errorMessage);
+                    showAlert(errorMessage, 'danger');
+                }
+            } catch (error) {
+                console.error('Delete task error:', error);
+                showAlert(`Netwerk fout: ${error.message}`, 'danger');
+            }
+        }
+
+        // Cleanup completed tasks functionality
+        async function cleanupCompletedTasks() {
+            if (!dashboardData || !dashboardData.tasks) {
+                showAlert('Geen taken gevonden om op te ruimen.', 'info');
+                return;
+            }
+            
+            // Reset checkbox
+            document.getElementById('cleanup-all-tasks').checked = false;
+            
+            // Update counts
+            updateCleanupCounts();
+            
+            // Show cleanup modal
+            const modal = new bootstrap.Modal(document.getElementById('cleanupTasksModal'));
+            modal.show();
+        }
+
+        function updateCleanupCounts() {
+            if (!dashboardData || !dashboardData.tasks) return;
+            
+            const approvedTasks = dashboardData.tasks.filter(task => task.status === 'approved');
+            const declinedTasks = dashboardData.tasks.filter(task => task.status === 'declined');
+            const rejectedTasks = dashboardData.tasks.filter(task => task.status === 'rejected');
+            
+            document.getElementById('cleanup-approved-count').textContent = approvedTasks.length;
+            document.getElementById('cleanup-declined-count').textContent = declinedTasks.length;
+            document.getElementById('cleanup-rejected-count').textContent = rejectedTasks.length;
+            
+            const cleanupAllTasks = document.getElementById('cleanup-all-tasks').checked;
+            
+            if (cleanupAllTasks) {
+                // Show all task counts
+                const assignedTasks = dashboardData.tasks.filter(task => task.status === 'assigned' || !task.status);
+                const acceptedTasks = dashboardData.tasks.filter(task => task.status === 'accepted');
+                const completedTasks = dashboardData.tasks.filter(task => task.status === 'completed');
+                
+                // Update the display to show all task types
+                const countsDiv = document.querySelector('#cleanupTasksModal .bg-light');
+                countsDiv.innerHTML = `
+                    <h6 class="text-info mb-2">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Nieuwe taken (${assignedTasks.length})
+                    </h6>
+                    <h6 class="text-dark mb-2">
+                        <i class="fas fa-check-circle me-1"></i>
+                        Geaccepteerde taken (${acceptedTasks.length})
+                    </h6>
+                                                <h6 class="text-secondary mb-2">
+                        <i class="fas fa-clock me-1"></i>
+                        Wachtende taken (${completedTasks.length})
+                    </h6>
+                    <h6 class="text-success mb-2">
+                        <i class="fas fa-check-circle me-1"></i>
+                        Voltooide taken (${approvedTasks.length})
+                    </h6>
+                    <h6 class="text-secondary mb-2">
+                        <i class="fas fa-times-circle me-1"></i>
+                        Geweigerde taken (${declinedTasks.length})
+                    </h6>
+                    <h6 class="text-danger mb-0">
+                        <i class="fas fa-ban me-1"></i>
+                        Afgewezen taken (${rejectedTasks.length})
+                    </h6>
+                `;
+            } else {
+                // Show only completed task counts
+                const countsDiv = document.querySelector('#cleanupTasksModal .bg-light');
+                countsDiv.innerHTML = `
+                    <h6 class="text-success mb-2">
+                        <i class="fas fa-check-circle me-1"></i>
+                        Voltooide taken (${approvedTasks.length})
+                    </h6>
+                    <h6 class="text-secondary mb-2">
+                        <i class="fas fa-times-circle me-1"></i>
+                        Geweigerde taken (${declinedTasks.length})
+                    </h6>
+                    <h6 class="text-danger mb-0">
+                        <i class="fas fa-ban me-1"></i>
+                        Afgewezen taken (${rejectedTasks.length})
+                    </h6>
+                `;
+            }
+        }
+
+        async function confirmCleanupTasks() {
+            if (!dashboardData || !dashboardData.tasks) {
+                showAlert('Geen taken gevonden om op te ruimen.', 'danger');
+                return;
+            }
+            
+            const cleanupAllTasks = document.getElementById('cleanup-all-tasks').checked;
+            
+            // Get tasks to clean up
+            let tasksToDelete;
+            if (cleanupAllTasks) {
+                // Delete ALL tasks
+                tasksToDelete = dashboardData.tasks;
+            } else {
+                // Delete only completed tasks
+                tasksToDelete = dashboardData.tasks.filter(task => 
+                    task.status === 'approved' || 
+                    task.status === 'declined' || 
+                    task.status === 'rejected'
+                );
+            }
+            
+            if (tasksToDelete.length === 0) {
+                showAlert('Er zijn geen taken om op te ruimen.', 'info');
+                return;
+            }
+            
+            try {
+                // Create array of delete promises
+                const deletePromises = tasksToDelete.map(task => {
+                    console.log('Deleting task assignment:', task.assignment_id, task.name);
+                    return fetch(`/api/assignments/${task.assignment_id}/delete`, {
+                        method: 'DELETE',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                });
+                
+                // Wait for all deletes to complete
+                const responses = await Promise.all(deletePromises);
+                
+                // Check if all were successful
+                const successCount = responses.filter(response => response.ok).length;
+                const failCount = responses.length - successCount;
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('cleanupTasksModal'));
+                modal.hide();
+                
+                if (failCount === 0) {
+                    const message = cleanupAllTasks ? 
+                        `Alle ${successCount} taken succesvol verwijderd! 🧹` : 
+                        `${successCount} voltooide taken succesvol opgeruimd! 🧹`;
+                    showAlert(message, 'success');
+                } else {
+                    showAlert(`${successCount} taken opgeruimd, ${failCount} taken konden niet worden verwijderd.`, 'warning');
+                }
+                
+                // Refresh dashboard
+                setTimeout(() => location.reload(), 1500);
+                
+            } catch (error) {
+                console.error('Cleanup tasks error:', error);
+                showAlert('Er is een fout opgetreden bij het opruimen van de taken.', 'danger');
+            }
+        }
+
         async function approveTask(assignmentId, points) {
             try {
                 const response = await fetch(`/api/assignments/${assignmentId}/approve`, {
@@ -805,8 +1788,8 @@
                 
                 if (response.ok) {
                     showAlert(data.message, 'success');
-                    // Refresh dashboard
-                    setTimeout(() => location.reload(), 1000);
+                    // Refresh dashboard immediately for faster updates
+                    setTimeout(() => location.reload(), 500);
                 } else {
                     showAlert(data.error, 'danger');
                 }
@@ -827,8 +1810,8 @@
                 
                 if (response.ok) {
                     showAlert(data.message, 'info');
-                    // Refresh dashboard
-                    setTimeout(() => location.reload(), 1000);
+                    // Refresh dashboard immediately for faster updates
+                    setTimeout(() => location.reload(), 500);
                 } else {
                     showAlert(data.error, 'danger');
                 }
@@ -955,7 +1938,8 @@
             try {
                 const response = await fetch(`/api/rewards/${rewardId}/redeem`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include'
                 });
                 
                 const data = await response.json();
@@ -969,7 +1953,7 @@
                 }
             } catch (error) {
                 console.error('Redeem reward error:', error);
-                showAlert('Er is een fout opgetreden.', 'danger');
+                showAlert('Er is een fout opgetreden bij het inwisselen van de beloning.', 'danger');
             }
         }
 
@@ -1076,6 +2060,623 @@
 
         // Initialize dashboard on page load
         document.addEventListener('DOMContentLoaded', initDashboard);
+
+        // User Management Functions - Fixed
+        document.addEventListener('DOMContentLoaded', () => {
+            // Add User Button
+            const addUserBtn = document.getElementById('add-user-btn');
+            if (addUserBtn) {
+                addUserBtn.addEventListener('click', async () => {
+                    console.log('Add user button clicked'); // Debug log
+                    const formData = {
+                        role: document.getElementById('add-user-role').value,
+                        firstName: document.getElementById('add-user-first-name').value,
+                        lastName: document.getElementById('add-user-last-name').value,
+                        username: document.getElementById('add-user-username').value,
+                        password: document.getElementById('add-user-password').value
+                    };
+
+                    // Validate form
+                    if (!formData.role || !formData.firstName || !formData.lastName || !formData.username || !formData.password) {
+                        showAlert('Alle velden zijn verplicht.', 'danger');
+                        return;
+                    }
+
+                    if (formData.password.length < 6) {
+                        showAlert('Wachtwoord moet minimaal 6 karakters bevatten.', 'danger');
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('/api/users', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(formData)
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            showAlert(data.message, 'success');
+                            document.getElementById('add-user-form').reset();
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+                            if (modal) {
+                                modal.hide();
+                            }
+                            // Refresh dashboard
+                            setTimeout(() => location.reload(), 1000);
+                        } else {
+                            showAlert(data.error, 'danger');
+                        }
+                    } catch (error) {
+                        console.error('Add user error:', error);
+                        showAlert('Er is een fout opgetreden.', 'danger');
+                    }
+                });
+            }
+
+            // Edit User Button
+            const editUserBtn = document.getElementById('edit-user-btn');
+            if (editUserBtn) {
+                editUserBtn.addEventListener('click', async () => {
+                    const userId = document.getElementById('edit-user-id').value;
+                    const button = document.getElementById('edit-user-btn');
+                    
+                    // Show loading state
+                    button.disabled = true;
+                    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Opslaan...';
+                    
+                    try {
+                        // First, update user info
+                        const userFormData = {
+                            role: document.getElementById('edit-user-role').value,
+                            firstName: document.getElementById('edit-user-first-name').value,
+                            lastName: document.getElementById('edit-user-last-name').value,
+                            username: document.getElementById('edit-user-username').value
+                        };
+
+                        const response = await fetch(`/api/users/${userId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(userFormData)
+                        });
+
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                            showAlert(data.error, 'danger');
+                            return;
+                        }
+
+                        // Update password if provided
+                        const password = document.getElementById('edit-user-password').value;
+                        if (password && password.length >= 6) {
+                            const passwordResponse = await fetch(`/api/users/${userId}/password`, {
+                                method: 'PUT',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ newPassword: password })
+                            });
+
+                            if (!passwordResponse.ok) {
+                                const passwordData = await passwordResponse.json();
+                                showAlert(passwordData.error, 'danger');
+                                return;
+                            }
+                        }
+
+                        // Upload image if provided
+                        const imageFile = document.getElementById('edit-user-image').files[0];
+                        if (imageFile) {
+                            const imageFormData = new FormData();
+                            imageFormData.append('image', imageFile);
+                            imageFormData.append('userId', userId);
+
+                            const imageResponse = await fetch('/api/upload-image', {
+                                method: 'POST',
+                                body: imageFormData,
+                                credentials: 'include'
+                            });
+
+                            if (!imageResponse.ok) {
+                                const imageData = await imageResponse.json();
+                                showAlert(`Gebruiker bijgewerkt, maar foto upload mislukt: ${imageData.error}`, 'warning');
+                            } else {
+                                showAlert('Gebruiker en profielfoto succesvol bijgewerkt!', 'success');
+                            }
+                        } else {
+                            showAlert(data.message, 'success');
+                        }
+
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
+                        modal.hide();
+                        // Refresh dashboard
+                        setTimeout(() => location.reload(), 1000);
+
+                    } catch (error) {
+                        console.error('Edit user error:', error);
+                        showAlert('Er is een fout opgetreden.', 'danger');
+                    } finally {
+                        // Reset button state
+                        button.disabled = false;
+                        button.innerHTML = '<i class="fas fa-save me-2"></i>Opslaan';
+                    }
+                });
+            }
+
+            // Delete User Button
+            const deleteUserBtn = document.getElementById('delete-user-btn');
+            if (deleteUserBtn) {
+                deleteUserBtn.addEventListener('click', async () => {
+                    const userId = document.getElementById('delete-user-id').value;
+
+                    try {
+                        const response = await fetch(`/api/users/${userId}`, {
+                            method: 'DELETE',
+                            headers: { 'Content-Type': 'application/json' }
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            showAlert(data.message, 'success');
+                            const modal = bootstrap.Modal.getInstance(document.getElementById('deleteUserModal'));
+                            modal.hide();
+                            // Refresh dashboard
+                            setTimeout(() => location.reload(), 1000);
+                        } else {
+                            showAlert(data.error, 'danger');
+                        }
+                    } catch (error) {
+                        console.error('Delete user error:', error);
+                        showAlert('Er is een fout opgetreden.', 'danger');
+                    }
+                });
+            }
+        }); // Close DOMContentLoaded
+
+        // Functions to open modals - Fixed
+        window.editUser = async function(userId, firstName, lastName, username, role) {
+            console.log('editUser called with:', {userId, firstName, lastName, username, role}); // Debug log
+            document.getElementById('edit-user-id').value = userId;
+            document.getElementById('edit-user-first-name').value = firstName;
+            document.getElementById('edit-user-last-name').value = lastName;
+            document.getElementById('edit-user-username').value = username;
+            document.getElementById('edit-user-role').value = role;
+            document.getElementById('edit-user-password').value = '';
+            
+            // Reset image upload fields
+            document.getElementById('edit-user-image').value = '';
+            document.getElementById('edit-image-preview-container').style.display = 'none';
+            
+            // Load current profile image
+            await loadCurrentProfileImage(userId);
+            
+            const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
+            modal.show();
+        }
+
+        // Load current profile image for user
+        async function loadCurrentProfileImage(userId) {
+            try {
+                const response = await fetch(`/api/profile-images/user/${userId}`, {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    if (data.image) {
+                        // Show current image
+                        document.getElementById('current-image-preview').src = data.image.image_path;
+                        document.getElementById('current-profile-image').style.display = 'block';
+                        document.getElementById('no-profile-image').style.display = 'none';
+                    } else {
+                        // No image found
+                        document.getElementById('current-profile-image').style.display = 'none';
+                        document.getElementById('no-profile-image').style.display = 'block';
+                    }
+                } else {
+                    // Error or no image
+                    document.getElementById('current-profile-image').style.display = 'none';
+                    document.getElementById('no-profile-image').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error loading current profile image:', error);
+                document.getElementById('current-profile-image').style.display = 'none';
+                document.getElementById('no-profile-image').style.display = 'block';
+            }
+        }
+
+        window.deleteUser = function(userId, firstName, lastName) {
+            console.log('deleteUser called with:', {userId, firstName, lastName}); // Debug log
+            document.getElementById('delete-user-id').value = userId;
+            document.getElementById('delete-user-name').textContent = `${firstName} ${lastName}`;
+            
+            const modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
+            modal.show();
+        }
+
+        // Modal-based assignment system - no dropdown initialization needed
+
+        // Task Assignment Modal Functions
+        let currentTaskId = null;
+
+        // Pre-populate assignment modal options when dashboard loads
+        function populateAssignmentModal(familyMembers = null) {
+            // Use provided familyMembers or fall back to dashboardData
+            const members = familyMembers || (dashboardData ? dashboardData.familyMembers : []);
+            const children = members.filter(m => m.role === 'child');
+            const individualOptions = document.getElementById('individual-assignment-options');
+            
+            if (!individualOptions) {
+                console.error('Individual assignment options container not found');
+                return;
+            }
+            
+            individualOptions.innerHTML = '';
+            
+            if (children.length === 0) {
+                individualOptions.innerHTML = '<p class="text-muted text-center">Geen kinderen gevonden.</p>';
+                return;
+            }
+            
+            children.forEach((child, index) => {
+                const button = document.createElement('button');
+                button.className = 'btn btn-outline-dark mb-2 w-100';
+                button.setAttribute('data-child-id', child.id);
+                button.setAttribute('data-child-name', `${child.first_name} ${child.last_name}`);
+                button.innerHTML = `
+                                                    <i class="fas fa-child me-2 text-primary"></i>
+                    <strong>${child.first_name} ${child.last_name}</strong>
+                                         <span class="badge bg-dark ms-2">${child.points} punten</span>
+                `;
+                
+                // Add click handler
+                button.onclick = function() {
+                    if (currentTaskId) {
+                        assignTask(currentTaskId, child.id, `${child.first_name} ${child.last_name}`);
+                    }
+                };
+                
+                individualOptions.appendChild(button);
+            });
+        }
+
+        function openAssignModal(taskId) {
+            currentTaskId = taskId;
+            
+            // Ensure children are populated (in case they weren't loaded yet)
+            if (dashboardData && dashboardData.familyMembers) {
+                populateAssignmentModal(dashboardData.familyMembers);
+            }
+            
+            // Show the modal instantly
+            const modal = new bootstrap.Modal(document.getElementById('assignTaskModal'));
+            modal.show();
+        }
+
+        // Override assignment functions to close modal after assignment
+        const originalAssignTaskToAll = window.assignTaskToAll;
+        window.assignTaskToAll = function(taskId) {
+            originalAssignTaskToAll(taskId);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('assignTaskModal'));
+            if (modal) modal.hide();
+        };
+
+        const originalAssignTask = window.assignTask;
+        window.assignTask = function(taskId, childId, childName) {
+            originalAssignTask(taskId, childId, childName);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('assignTaskModal'));
+            if (modal) modal.hide();
+        };
+
+        // Reward Management Functions
+        async function addReward() {
+            const name = document.getElementById('reward-name').value.trim();
+            const description = document.getElementById('reward-description').value.trim();
+            const points = document.getElementById('reward-points').value;
+            const category = document.getElementById('reward-category').value;
+            
+            if (!name || !points) {
+                showAlert('Naam en punten zijn verplicht.', 'warning');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/rewards', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        name,
+                        description,
+                        points_required: parseInt(points),
+                        category
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(data.message, 'success');
+                    document.getElementById('add-reward-form').reset();
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addRewardModal'));
+                    modal.hide();
+                    // Refresh dashboard
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Add reward error:', error);
+                showAlert('Er is een fout opgetreden bij het toevoegen van de beloning.', 'danger');
+            }
+        }
+
+        function editReward(rewardId, name, description, points, category) {
+            document.getElementById('edit-reward-id').value = rewardId;
+            document.getElementById('edit-reward-name').value = name;
+            document.getElementById('edit-reward-description').value = description;
+            document.getElementById('edit-reward-points').value = points;
+            document.getElementById('edit-reward-category').value = category;
+            
+            const modal = new bootstrap.Modal(document.getElementById('editRewardModal'));
+            modal.show();
+        }
+
+        async function updateReward() {
+            const rewardId = document.getElementById('edit-reward-id').value;
+            const name = document.getElementById('edit-reward-name').value.trim();
+            const description = document.getElementById('edit-reward-description').value.trim();
+            const points = document.getElementById('edit-reward-points').value;
+            const category = document.getElementById('edit-reward-category').value;
+            
+            if (!name || !points) {
+                showAlert('Naam en punten zijn verplicht.', 'warning');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/rewards/${rewardId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        name,
+                        description,
+                        points_required: parseInt(points),
+                        category
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(data.message, 'success');
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editRewardModal'));
+                    modal.hide();
+                    // Refresh dashboard
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Update reward error:', error);
+                showAlert('Er is een fout opgetreden bij het bijwerken van de beloning.', 'danger');
+            }
+        }
+
+        async function deleteReward(rewardId, rewardName) {
+            if (!confirm(`Weet je zeker dat je de beloning "${rewardName}" wilt verwijderen?`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/rewards/${rewardId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showAlert(data.message, 'success');
+                    // Refresh dashboard
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showAlert(data.error, 'danger');
+                }
+            } catch (error) {
+                console.error('Delete reward error:', error);
+                showAlert('Er is een fout opgetreden bij het verwijderen van de beloning.', 'danger');
+            }
+        }
+
+        // Populate rewards management in parent dashboard
+        function populateRewardsManagement() {
+            if (!dashboardData || !dashboardData.rewards) return;
+            
+            const rewardsContainer = document.getElementById('rewards-management');
+            if (!rewardsContainer) return;
+            
+            rewardsContainer.innerHTML = '';
+            
+            if (dashboardData.rewards.length === 0) {
+                rewardsContainer.innerHTML = '<p class="text-muted">Nog geen beloningen aangemaakt. Klik op "Beloning Toevoegen" om te beginnen.</p>';
+                return;
+            }
+            
+            dashboardData.rewards.forEach(reward => {
+                const rewardCard = document.createElement('div');
+                rewardCard.className = 'card mb-3';
+                rewardCard.innerHTML = `
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <h6 class="card-title mb-1">${reward.name}</h6>
+                                <p class="card-text text-muted mb-0">${reward.description || 'Geen beschrijving'}</p>
+                                <small class="text-muted">Categorie: ${reward.category}</small>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <span class="badge bg-secondary">${reward.points_required} punten</span>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-outline-primary btn-sm" onclick="editReward(${reward.id}, '${reward.name}', '${reward.description || ''}', ${reward.points_required}, '${reward.category}')" title="Bewerken">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-outline-danger btn-sm" onclick="deleteReward(${reward.id}, '${reward.name}')" title="Verwijderen">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                rewardsContainer.appendChild(rewardCard);
+            });
+        }
+
+        // Load reward redemptions history with caching
+        let rewardRedemptionsCache = null;
+        let rewardRedemptionsCacheTime = 0;
+        const CACHE_DURATION = 30000; // 30 seconds cache
+
+        async function loadRewardRedemptions() {
+            const rewardsContainer = document.getElementById('reward-redemptions');
+            if (!rewardsContainer) return;
+            
+            // Check cache first
+            const now = Date.now();
+            if (rewardRedemptionsCache && (now - rewardRedemptionsCacheTime) < CACHE_DURATION) {
+                populateRewardRedemptions(rewardRedemptionsCache);
+                return;
+            }
+            
+            // Show loading state
+            rewardsContainer.innerHTML = '<p class="text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Beloningen geschiedenis laden...</p>';
+            
+            try {
+                const response = await fetch('/api/rewards/history', {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 403) {
+                        rewardsContainer.innerHTML = '<p class="text-muted">Alleen ouders kunnen de beloningen geschiedenis bekijken.</p>';
+                        return;
+                    }
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    rewardRedemptionsCache = data.redemptions || [];
+                    rewardRedemptionsCacheTime = now;
+                    populateRewardRedemptions(data.redemptions || []);
+                } else {
+                    rewardsContainer.innerHTML = '<p class="text-muted">Nog geen beloningen ingewisseld door de kinderen.</p>';
+                }
+            } catch (error) {
+                console.error('Error loading reward redemptions:', error);
+                rewardsContainer.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Kon beloningen geschiedenis niet laden. Probeer de pagina te vernieuwen.
+                    </div>
+                `;
+            }
+        }
+
+        // Populate reward redemptions with optimized DOM operations
+        function populateRewardRedemptions(redemptions) {
+            const rewardsContainer = document.getElementById('reward-redemptions');
+            if (!rewardsContainer) return;
+            
+            if (redemptions.length === 0) {
+                rewardsContainer.innerHTML = '<p class="text-muted">Nog geen beloningen ingewisseld door de kinderen.</p>';
+                return;
+            }
+            
+            // Use document fragment for better performance
+            const fragment = document.createDocumentFragment();
+            
+            redemptions.forEach(redemption => {
+                const redemptionCard = document.createElement('div');
+                redemptionCard.className = 'card mb-3';
+                
+                // Pre-format dates to avoid repeated calculations
+                const createdDate = new Date(redemption.created_at);
+                const dateString = createdDate.toLocaleDateString('nl-NL');
+                const timeString = createdDate.toLocaleTimeString('nl-NL');
+                
+                redemptionCard.innerHTML = `
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <h6 class="card-title mb-1">
+                                    <i class="fas fa-gift me-2 text-success"></i>
+                                    ${redemption.reward_name}
+                                </h6>
+                                <p class="card-text text-muted mb-0">${redemption.reward_description || 'Geen beschrijving'}</p>
+                                <small class="text-muted">Categorie: ${redemption.reward_category}</small>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <div class="mb-1">
+                                    <span class="badge bg-success">${redemption.first_name} ${redemption.last_name}</span>
+                                </div>
+                                <div>
+                                    <span class="badge bg-secondary">${redemption.points_spent} punten</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    ${dateString}
+                                    <br>
+                                    <i class="fas fa-clock me-1"></i>
+                                    ${timeString}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                fragment.appendChild(redemptionCard);
+            });
+            
+            // Single DOM update
+            rewardsContainer.innerHTML = '';
+            rewardsContainer.appendChild(fragment);
+        }
+
+
+
+        // Edit User Modal Image Preview
+        document.getElementById('edit-user-image').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            const previewContainer = document.getElementById('edit-image-preview-container');
+            const previewImage = document.getElementById('edit-image-preview');
+            
+            if (file) {
+                if (file.size > 5 * 1024 * 1024) { // 5MB
+                    showAlert('Bestand is te groot. Maximaal 5MB toegestaan.', 'warning');
+                    this.value = '';
+                    previewContainer.style.display = 'none';
+                    return;
+                }
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImage.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                previewContainer.style.display = 'none';
+            }
+        });
     </script>
 
     <!-- User Management Modals -->
@@ -1138,7 +2739,7 @@
 
     <!-- Edit User Modal -->
     <div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="editUserModalLabel">
@@ -1148,8 +2749,46 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="edit-user-form">
+                    <form id="edit-user-form" enctype="multipart/form-data">
                         <input type="hidden" id="edit-user-id">
+                        
+                        <!-- Current Profile Image -->
+                        <div class="mb-4">
+                            <label class="form-label">Huidige profielfoto</label>
+                            <div class="text-center">
+                                <div id="current-profile-image" style="display: none;">
+                                    <img id="current-image-preview" class="img-thumbnail mb-2" style="width: 100px; height: 100px; object-fit: cover;">
+                                </div>
+                                <div id="no-profile-image" class="text-muted">
+                                    <i class="fas fa-user-circle" style="font-size: 60px; opacity: 0.3;"></i>
+                                    <div>Geen profielfoto</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- New Profile Image Upload -->
+                        <div class="mb-4">
+                            <label for="edit-user-image" class="form-label">
+                                <i class="fas fa-camera me-2"></i>
+                                Nieuwe profielfoto uploaden (optioneel)
+                            </label>
+                            <input type="file" class="form-control" id="edit-user-image" accept="image/*">
+                            <div class="form-text">Ondersteunde formaten: JPG, PNG, GIF. Maximaal 5MB.</div>
+                            
+                            <!-- Image Preview -->
+                            <div class="mt-3" id="edit-image-preview-container" style="display: none;">
+                                <label class="form-label">Nieuwe foto voorbeeld:</label>
+                                <div class="text-center">
+                                    <img id="edit-image-preview" class="img-thumbnail" style="max-width: 150px; max-height: 150px;">
+                                </div>
+                            </div>
+                        </div>
+                        
+
+                        
+                        <hr>
+                        
+                        <!-- User Details -->
                         <div class="mb-3">
                             <label for="edit-user-role" class="form-label">Rol</label>
                             <select class="form-select" id="edit-user-role" required>
@@ -1223,150 +2862,50 @@
         </div>
     </div>
 
-    <script>
-        // User Management Functions
-        document.getElementById('add-user-btn').addEventListener('click', async () => {
-            const formData = {
-                role: document.getElementById('add-user-role').value,
-                firstName: document.getElementById('add-user-first-name').value,
-                lastName: document.getElementById('add-user-last-name').value,
-                username: document.getElementById('add-user-username').value,
-                password: document.getElementById('add-user-password').value
-            };
+    <!-- Task Assignment Modal -->
+    <div class="modal" id="assignTaskModal" tabindex="-1" aria-labelledby="assignTaskModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="assignTaskModalLabel">
+                        <i class="fas fa-user-plus me-2"></i>
+                        Taak Toewijzen
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <h6 class="mb-3">Selecteer wie deze taak moet doen:</h6>
+                        
+                        <!-- Group Assignment Options -->
+                        <div id="group-assignment-options" class="mb-4">
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-success btn-lg" onclick="assignTaskToAll(currentTaskId)">
+                                    <i class="fas fa-users me-2 text-light"></i>
+                                    <strong>Alle kinderen</strong>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Divider -->
+                        <hr>
+                        
+                        <!-- Individual Assignment Options -->
+                        <div class="mb-3">
+                            <h6 class="mb-3">Of kies een specifiek kind:</h6>
+                            <div id="individual-assignment-options" class="d-grid gap-2">
+                                <!-- Individual children options will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
-            // Validate form
-            if (!formData.role || !formData.firstName || !formData.lastName || !formData.username || !formData.password) {
-                showAlert('Alle velden zijn verplicht.', 'danger');
-                return;
-            }
 
-            if (formData.password.length < 6) {
-                showAlert('Wachtwoord moet minimaal 6 karakters bevatten.', 'danger');
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/users', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    showAlert(data.message, 'success');
-                    document.getElementById('add-user-form').reset();
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
-                    modal.hide();
-                    // Refresh dashboard
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showAlert(data.error, 'danger');
-                }
-            } catch (error) {
-                console.error('Add user error:', error);
-                showAlert('Er is een fout opgetreden.', 'danger');
-            }
-        });
-
-        document.getElementById('edit-user-btn').addEventListener('click', async () => {
-            const userId = document.getElementById('edit-user-id').value;
-            const formData = {
-                role: document.getElementById('edit-user-role').value,
-                firstName: document.getElementById('edit-user-first-name').value,
-                lastName: document.getElementById('edit-user-last-name').value,
-                username: document.getElementById('edit-user-username').value
-            };
-
-            const password = document.getElementById('edit-user-password').value;
-
-            try {
-                // Update user info
-                const response = await fetch(`/api/users/${userId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(formData)
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    // Update password if provided
-                    if (password && password.length >= 6) {
-                        const passwordResponse = await fetch(`/api/users/${userId}/password`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ newPassword: password })
-                        });
-
-                        if (!passwordResponse.ok) {
-                            const passwordData = await passwordResponse.json();
-                            showAlert(passwordData.error, 'danger');
-                            return;
-                        }
-                    }
-
-                    showAlert(data.message, 'success');
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('editUserModal'));
-                    modal.hide();
-                    // Refresh dashboard
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showAlert(data.error, 'danger');
-                }
-            } catch (error) {
-                console.error('Edit user error:', error);
-                showAlert('Er is een fout opgetreden.', 'danger');
-            }
-        });
-
-        document.getElementById('delete-user-btn').addEventListener('click', async () => {
-            const userId = document.getElementById('delete-user-id').value;
-
-            try {
-                const response = await fetch(`/api/users/${userId}`, {
-                    method: 'DELETE',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    showAlert(data.message, 'success');
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('deleteUserModal'));
-                    modal.hide();
-                    // Refresh dashboard
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showAlert(data.error, 'danger');
-                }
-            } catch (error) {
-                console.error('Delete user error:', error);
-                showAlert('Er is een fout opgetreden.', 'danger');
-            }
-        });
-
-        // Functions to open modals
-        function editUser(userId, firstName, lastName, username, role) {
-            document.getElementById('edit-user-id').value = userId;
-            document.getElementById('edit-user-first-name').value = firstName;
-            document.getElementById('edit-user-last-name').value = lastName;
-            document.getElementById('edit-user-username').value = username;
-            document.getElementById('edit-user-role').value = role;
-            document.getElementById('edit-user-password').value = '';
-            
-            const modal = new bootstrap.Modal(document.getElementById('editUserModal'));
-            modal.show();
-        }
-
-        function deleteUser(userId, firstName, lastName) {
-            document.getElementById('delete-user-id').value = userId;
-            document.getElementById('delete-user-name').textContent = `${firstName} ${lastName}`;
-            
-            const modal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
-            modal.show();
-        }
-    </script>
 </body>
 </html>

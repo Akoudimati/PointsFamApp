@@ -4,6 +4,9 @@ const bodyParser = require('body-parser');
 const path = require('path');
 const bcrypt = require('bcrypt');
 const cors = require('cors');
+const compression = require('compression');
+const multer = require('multer');
+const fs = require('fs');
 const Database = require('./db');
 
 // Initialize database
@@ -13,9 +16,56 @@ const db = new Database();
 const app = express();
 const PORT = 3000;
 
-// Middleware
+// Multer configuration for file uploads
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const uploadDir = path.join(__dirname, 'public', 'uploads', 'profiles');
+        
+        // Create directory if it doesn't exist
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        
+        cb(null, uploadDir);
+    },
+    filename: function (req, file, cb) {
+        // Generate unique filename
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        cb(null, 'profile-' + uniqueSuffix + ext);
+    }
+});
+
+const upload = multer({
+    storage: storage,
+    limits: {
+        fileSize: 5 * 1024 * 1024 // 5MB limit
+    },
+    fileFilter: function (req, file, cb) {
+        // Check if file is an image
+        if (!file.mimetype.startsWith('image/')) {
+            return cb(new Error('Only image files are allowed'), false);
+        }
+        cb(null, true);
+    }
+});
+
+// Middleware with performance optimizations
+app.use(compression()); // Enable gzip compression
 app.use(cors());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+    maxAge: '0', // Disable caching for dynamic development
+    etag: false,
+    lastModified: false,
+    setHeaders: (res, path) => {
+        // Disable caching for CSS and JS files to prevent old styling issues
+        if (path.endsWith('.css') || path.endsWith('.js')) {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+        }
+    }
+}));
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
@@ -26,9 +76,26 @@ app.use(session({
     saveUninitialized: false,
     cookie: {
         secure: false, // Set to true in production with HTTPS
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
-    }
+        maxAge: 8 * 60 * 60 * 1000, // 8 hours (reduced from 24)
+        httpOnly: true, // Prevent XSS attacks
+        sameSite: 'strict' // CSRF protection
+    },
+    rolling: true, // Reset expiration on each request
+    name: 'pointsfam.session' // Custom session name
 }));
+
+// Cache busting middleware for HTML files
+const preventCacheMiddleware = (req, res, next) => {
+    if (req.path.endsWith('.html') || req.path === '/' || req.path.includes('/dashboard') || req.path.includes('/login')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+    }
+    next();
+};
+
+// Apply cache prevention middleware
+app.use(preventCacheMiddleware);
 
 // Authentication middleware
 const requireAuth = (req, res, next) => {
@@ -395,7 +462,9 @@ app.get('/api/dashboard', requireAuth, async (req, res) => {
             // Parent dashboard data
             const familyMembers = await db.getFamilyMembers(user.familyId);
             const pendingTasks = await db.getPendingTasksForFamily(user.familyId);
+            const allTaskAssignments = await db.getAllTaskAssignmentsForFamily(user.familyId);
             const standardTasks = await db.getStandardTasks();
+            const rewards = await db.getRewards(user.familyId);
             
             // Get all tasks for the family to show open tasks
             const allTasks = await db.getTasksForFamily(user.familyId);
@@ -405,8 +474,10 @@ app.get('/api/dashboard', requireAuth, async (req, res) => {
                 user: user,
                 familyMembers: familyMembers,
                 pendingTasks: pendingTasks,
+                allTaskAssignments: allTaskAssignments,
                 standardTasks: standardTasks,
-                allTasks: allTasks
+                allTasks: allTasks,
+                rewards: rewards
             });
         } else {
             // Child dashboard data
@@ -600,13 +671,86 @@ app.post('/api/assignments/:assignmentId/accept', requireAuth, async (req, res) 
             if (!task) {
                 return res.status(403).json({ error: 'You can only accept your own tasks' });
             }
+            
+            // Immediately complete the task and award points
+            const pointsAwarded = task.points;
+            
+            // Mark task as completed first, then approve
+            await db.completeTask(assignmentId);
+            await db.approveTask(assignmentId, user.id, pointsAwarded);
+            
+            // Update user points and add transaction
+            const currentUser = await db.getUserById(user.id);
+            const newPoints = currentUser.points + pointsAwarded;
+            
+            await db.updateUserPoints(user.id, newPoints);
+            await db.addPointsTransaction(
+                user.id, 
+                pointsAwarded, 
+                `Task completed: ${task.name}`, 
+                'earned',
+                user.id
+            );
+            
+            res.json({ 
+                success: true, 
+                message: `Task completed! You earned ${pointsAwarded} points.`,
+                points_earned: pointsAwarded,
+                new_total: newPoints
+            });
+        } else {
+            // For parents, just accept the task (old behavior)
+            await db.acceptTask(assignmentId);
+            res.json({ success: true, message: 'Task accepted successfully' });
         }
-        
-        await db.acceptTask(assignmentId);
-        res.json({ success: true, message: 'Task accepted successfully' });
     } catch (error) {
         console.error('Accept task error:', error);
         res.status(500).json({ error: 'Error accepting task' });
+    }
+});
+
+// Retry task assignment (for rejected tasks)
+app.post('/api/assignments/:assignmentId/retry', requireAuth, async (req, res) => {
+    try {
+        const { assignmentId } = req.params;
+        const user = req.session.user;
+        
+        // Get assignment details
+        const [rows] = await db.pool.execute(
+            'SELECT ta.*, t.points, t.name FROM task_assignments ta JOIN tasks t ON ta.task_id = t.id WHERE ta.id = ?',
+            [assignmentId]
+        );
+        const assignment = rows[0];
+        
+        if (!assignment) {
+            return res.status(404).json({ error: 'Taak niet gevonden' });
+        }
+        
+        // Check if user owns this assignment
+        if (assignment.assigned_to !== user.id) {
+            return res.status(403).json({ error: 'Je kunt alleen je eigen taken opnieuw proberen' });
+        }
+        
+        // Check if task is rejected
+        if (assignment.status !== 'rejected') {
+            return res.status(400).json({ error: 'Alleen afgewezen taken kunnen opnieuw geprobeerd worden' });
+        }
+        
+        // Reset task status to assigned
+        await db.pool.execute(
+            'UPDATE task_assignments SET status = ?, completed_at = NULL WHERE id = ?',
+            ['assigned', assignmentId]
+        );
+        
+        res.json({ 
+            success: true,
+            message: `Je kunt de taak "${assignment.name}" nu opnieuw proberen!`,
+            status: 'assigned'
+        });
+        
+    } catch (error) {
+        console.error('Retry task error:', error);
+        res.status(500).json({ error: 'Er is een fout opgetreden bij het opnieuw proberen van de taak' });
     }
 });
 
@@ -712,6 +856,51 @@ app.post('/api/assignments/:assignmentId/reject', requireParent, async (req, res
     }
 });
 
+app.delete('/api/assignments/:assignmentId/delete', requireAuth, async (req, res) => {
+    try {
+        const { assignmentId } = req.params;
+        const user = req.session.user;
+        
+        console.log(`Delete request for assignment ${assignmentId} by user ${user.id} (${user.role})`);
+        
+        if (!assignmentId || isNaN(assignmentId)) {
+            console.error('Invalid assignment ID:', assignmentId);
+            return res.status(400).json({ error: 'Invalid assignment ID' });
+        }
+        
+        // Only allow children to delete their own tasks, parents can delete any
+        if (user.role === 'child') {
+            const tasks = await db.getTasksForUser(user.id);
+            const task = tasks.find(t => t.assignment_id == assignmentId);
+            
+            if (!task) {
+                console.error(`Child ${user.id} tried to delete assignment ${assignmentId} but it's not theirs`);
+                return res.status(403).json({ error: 'Je kunt alleen je eigen taken verwijderen' });
+            }
+            
+            console.log(`Child ${user.id} deleting their own assignment ${assignmentId}`);
+        } else if (user.role === 'parent') {
+            // Parents can delete any assignment in their family
+            console.log(`Parent ${user.id} deleting assignment ${assignmentId}`);
+        } else {
+            return res.status(403).json({ error: 'Access denied' });
+        }
+        
+        const result = await db.deleteTaskAssignment(assignmentId);
+        
+        if (result === 0) {
+            console.error(`No assignment found with ID ${assignmentId}`);
+            return res.status(404).json({ error: 'Taak niet gevonden' });
+        }
+        
+        console.log(`Successfully deleted assignment ${assignmentId}`);
+        res.json({ success: true, message: 'Taak succesvol verwijderd' });
+    } catch (error) {
+        console.error('Delete task assignment error:', error);
+        res.status(500).json({ error: 'Fout bij het verwijderen van de taak: ' + error.message });
+    }
+});
+
 // Points endpoints
 app.post('/api/users/:userId/bonus-points', requireParent, async (req, res) => {
     try {
@@ -789,6 +978,213 @@ app.post('/api/rewards/:rewardId/redeem', requireAuth, async (req, res) => {
     }
 });
 
+app.post('/api/rewards', requireParent, async (req, res) => {
+    try {
+        const { name, description, points_required, category } = req.body;
+        const user = req.session.user;
+        
+        if (!name || !points_required) {
+            return res.status(400).json({ error: 'Name and points required are required' });
+        }
+        
+        const rewardData = {
+            name: name.trim(),
+            description: description ? description.trim() : null,
+            points_required: parseInt(points_required),
+            category: category || 'other',
+            family_id: user.familyId,
+            created_by: user.id
+        };
+        
+        const rewardId = await db.createReward(rewardData);
+        res.json({ success: true, rewardId, message: 'Reward created successfully' });
+    } catch (error) {
+        console.error('Create reward error:', error);
+        res.status(500).json({ error: 'Error creating reward' });
+    }
+});
+
+app.put('/api/rewards/:rewardId', requireParent, async (req, res) => {
+    try {
+        const { rewardId } = req.params;
+        const { name, description, points_required, category } = req.body;
+        const user = req.session.user;
+        
+        if (!name || !points_required) {
+            return res.status(400).json({ error: 'Name and points required are required' });
+        }
+        
+        // Check if reward belongs to user's family
+        const rewards = await db.getRewards(user.familyId);
+        const reward = rewards.find(r => r.id == rewardId);
+        
+        if (!reward) {
+            return res.status(403).json({ error: 'Reward not found or access denied' });
+        }
+        
+        const rewardData = {
+            name: name.trim(),
+            description: description ? description.trim() : null,
+            points_required: parseInt(points_required),
+            category: category || 'other'
+        };
+        
+        await db.updateReward(rewardId, rewardData);
+        res.json({ success: true, message: 'Reward updated successfully' });
+    } catch (error) {
+        console.error('Update reward error:', error);
+        res.status(500).json({ error: 'Error updating reward' });
+    }
+});
+
+app.delete('/api/rewards/:rewardId', requireParent, async (req, res) => {
+    try {
+        const { rewardId } = req.params;
+        const user = req.session.user;
+        
+        // Check if reward belongs to user's family
+        const rewards = await db.getRewards(user.familyId);
+        const reward = rewards.find(r => r.id == rewardId);
+        
+        if (!reward) {
+            return res.status(403).json({ error: 'Reward not found or access denied' });
+        }
+        
+        await db.deleteReward(rewardId);
+        res.json({ success: true, message: 'Reward deleted successfully' });
+    } catch (error) {
+        console.error('Delete reward error:', error);
+        res.status(500).json({ error: 'Error deleting reward' });
+    }
+});
+
+app.get('/api/rewards/history', requireParent, async (req, res) => {
+    try {
+        const user = req.session.user;
+        const redemptions = await db.getRewardRedemptions(user.familyId);
+        res.json({ success: true, redemptions });
+    } catch (error) {
+        console.error('Get reward history error:', error);
+        res.status(500).json({ error: 'Error loading reward history' });
+    }
+});
+
+// Image upload endpoints
+app.post('/api/upload-image', requireParent, upload.single('image'), async (req, res) => {
+    try {
+        const { userId } = req.body;
+        const user = req.session.user;
+        
+        if (!req.file) {
+            return res.status(400).json({ error: 'No image file provided' });
+        }
+        
+        if (!userId) {
+            return res.status(400).json({ error: 'User ID is required' });
+        }
+        
+        // Check if the target user is in the same family
+        const familyMembers = await db.getFamilyMembers(user.familyId);
+        const targetUser = familyMembers.find(member => member.id == userId);
+        
+        if (!targetUser) {
+            return res.status(403).json({ error: 'User not found in your family' });
+        }
+        
+        // Create the image path relative to public folder
+        const imagePath = `/uploads/profiles/${req.file.filename}`;
+        
+        // Save image info to database (without description)
+        const imageData = {
+            user_id: userId,
+            image_path: imagePath,
+            description: null,
+            uploaded_by: user.id,
+            family_id: user.familyId
+        };
+        
+        const imageId = await db.createProfileImage(imageData);
+        
+        res.json({ 
+            success: true, 
+            imageId,
+            imagePath,
+            message: 'Image uploaded successfully' 
+        });
+    } catch (error) {
+        console.error('Upload image error:', error);
+        
+        // Delete uploaded file if database operation failed
+        if (req.file) {
+            fs.unlink(req.file.path, (err) => {
+                if (err) console.error('Error deleting file:', err);
+            });
+        }
+        
+        res.status(500).json({ error: 'Error uploading image' });
+    }
+});
+
+app.get('/api/profile-images', requireParent, async (req, res) => {
+    try {
+        const user = req.session.user;
+        const images = await db.getProfileImages(user.familyId);
+        res.json({ success: true, images });
+    } catch (error) {
+        console.error('Get profile images error:', error);
+        res.status(500).json({ error: 'Error loading profile images' });
+    }
+});
+
+app.get('/api/profile-images/user/:userId', requireParent, async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const user = req.session.user;
+        
+        // Check if the target user is in the same family
+        const familyMembers = await db.getFamilyMembers(user.familyId);
+        const targetUser = familyMembers.find(member => member.id == userId);
+        
+        if (!targetUser) {
+            return res.status(403).json({ error: 'User not found in your family' });
+        }
+        
+        const image = await db.getUserProfileImage(userId);
+        res.json({ success: true, image });
+    } catch (error) {
+        console.error('Get user profile image error:', error);
+        res.status(500).json({ error: 'Error loading user profile image' });
+    }
+});
+
+app.delete('/api/profile-images/:imageId', requireParent, async (req, res) => {
+    try {
+        const { imageId } = req.params;
+        const user = req.session.user;
+        
+        // Get image info to check family and get file path
+        const image = await db.getProfileImageById(imageId);
+        
+        if (!image || image.family_id !== user.familyId) {
+            return res.status(403).json({ error: 'Image not found or access denied' });
+        }
+        
+        // Delete from database
+        await db.deleteProfileImage(imageId);
+        
+        // Delete physical file
+        const filePath = path.join(__dirname, 'public', image.image_path);
+        fs.unlink(filePath, (err) => {
+            if (err) console.error('Error deleting file:', err);
+        });
+        
+        res.json({ success: true, message: 'Image deleted successfully' });
+    } catch (error) {
+        console.error('Delete image error:', error);
+        res.status(500).json({ error: 'Error deleting image' });
+    }
+});
+
 // Standard tasks endpoints
 app.get('/api/standard-tasks', requireParent, async (req, res) => {
     try {
@@ -824,10 +1220,10 @@ app.use((req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-    console.log(`🚀 PointsFam server running on http://localhost:${PORT}`);
-    console.log(`📊 Database: ${path.join(__dirname, 'database', 'pointsfam.db')}`);
-    console.log(`👨‍💼 Test Parent Login: username=parent1, password=password123`);
-    console.log(`👧 Test Child Login: username=child1, password=password123`);
+    console.log(` PointsFam server running on http://localhost:${PORT}`);
+    console.log(` Database: MySQL (pointsfam)`);
+    console.log(` Test Parent Login: username=parent1, password=password123`);
+    console.log(` Test Child Login: username=child1, password=password123`);
 });
 
 // Graceful shutdown

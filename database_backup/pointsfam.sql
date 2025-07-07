@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 06, 2025 at 07:47 AM
+-- Generation Time: Jul 07, 2025 at 08:07 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -40,9 +40,9 @@ CREATE TABLE `families` (
 --
 
 INSERT INTO `families` (`id`, `name`, `created_at`) VALUES
-(1, 'The Johnson Family', '2025-07-04 19:58:11'),
-(2, 'Familie van der Berg', '2025-07-04 19:58:11'),
-(3, 'The Smith Family', '2025-07-04 19:58:11');
+(1, 'The Johnson Family', '2025-07-04 17:58:11'),
+(2, 'Familie van der Berg', '2025-07-04 17:58:11'),
+(3, 'The Smith Family', '2025-07-04 17:58:11');
 
 -- --------------------------------------------------------
 
@@ -83,16 +83,43 @@ CREATE TABLE `points_transactions` (
 --
 
 INSERT INTO `points_transactions` (`id`, `user_id`, `points`, `transaction_type`, `description`, `task_assignment_id`, `reward_id`, `created_by`, `created_at`) VALUES
-(1, 3, 10, 'earned', 'Vaatwasser inruimen voltooid', 1, NULL, 1, '2025-07-04 19:58:11'),
-(2, 3, 15, 'earned', 'Kamer opruimen voltooid', 2, NULL, 1, '2025-07-04 19:58:11'),
-(3, 3, 25, 'bonus', 'Extra punten voor goede week', NULL, NULL, 1, '2025-07-04 19:58:11'),
-(4, 4, 20, 'earned', 'Hond uitlaten voltooid', 3, NULL, 1, '2025-07-04 19:58:11'),
-(5, 4, 10, 'earned', 'Vaatwasser inruimen voltooid', 4, NULL, 1, '2025-07-04 19:58:11'),
-(6, 7, 10, 'earned', 'Vaatwasser inruimen voltooid', 7, NULL, 5, '2025-07-04 19:58:11'),
-(7, 7, 15, 'earned', 'Kamer opruimen voltooid', 8, NULL, 5, '2025-07-04 19:58:11'),
-(8, 7, 50, 'bonus', 'Uitstekende week gehad!', NULL, NULL, 5, '2025-07-04 19:58:11'),
-(9, 8, 12, 'earned', 'Stofzuigen woonkamer voltooid', 9, NULL, 5, '2025-07-04 19:58:11'),
-(10, 8, 30, 'bonus', 'Goed gedrag deze week', NULL, NULL, 5, '2025-07-04 19:58:11');
+(1, 3, 50, 'bonus', 'Welkom bonus', NULL, NULL, 1, '2025-07-04 17:58:11'),
+(2, 3, 100, 'earned', 'Taken deze week voltooid', NULL, NULL, 1, '2025-07-04 17:58:11'),
+(3, 4, 75, 'earned', 'Goed gedrag', NULL, NULL, 1, '2025-07-04 17:58:11'),
+(4, 7, 200, 'earned', 'Uitstekende prestaties', NULL, NULL, 5, '2025-07-04 17:58:11'),
+(5, 8, 120, 'earned', 'Taken voltooid', NULL, NULL, 5, '2025-07-04 17:58:11'),
+(6, 3, -150, 'redeemed', 'Reward redeemed: Extra schermtijd', NULL, NULL, 3, '2025-07-07 03:37:33'),
+(7, 3, 20, 'earned', 'Task completed: Hond uitlaten', NULL, NULL, 3, '2025-07-07 05:29:20'),
+(8, 3, 10, 'earned', 'Task completed: Slaapkamer opruimen', NULL, NULL, 3, '2025-07-07 05:51:56'),
+(9, 3, 10, 'earned', 'Task completed: Vaatwasser inruimen', NULL, NULL, 3, '2025-07-07 05:57:14');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `profile_images`
+--
+
+CREATE TABLE `profile_images` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `image_path` varchar(500) NOT NULL,
+  `description` text DEFAULT NULL,
+  `uploaded_by` int(11) NOT NULL,
+  `family_id` int(11) NOT NULL,
+  `is_active` tinyint(1) DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Dumping data for table `profile_images`
+--
+
+INSERT INTO `profile_images` (`id`, `user_id`, `image_path`, `description`, `uploaded_by`, `family_id`, `is_active`, `created_at`) VALUES
+(1, 3, '/uploads/profiles/profile-1751864234730-845113694.jpg', NULL, 1, 1, 1, '2025-07-07 04:57:14'),
+(2, 3, '/uploads/profiles/profile-1751864514022-477149159.avif', NULL, 1, 1, 1, '2025-07-07 05:01:54'),
+(3, 3, '/uploads/profiles/profile-1751864951804-541672018.avif', NULL, 1, 1, 1, '2025-07-07 05:09:11'),
+(4, 4, '/uploads/profiles/profile-1751867704792-924129551.jpg', NULL, 1, 1, 1, '2025-07-07 05:55:04'),
+(5, 2, '/uploads/profiles/profile-1751867765314-9373131.webp', NULL, 1, 1, 1, '2025-07-07 05:56:05');
 
 -- --------------------------------------------------------
 
@@ -117,22 +144,10 @@ CREATE TABLE `rewards` (
 --
 
 INSERT INTO `rewards` (`id`, `family_id`, `name`, `description`, `points_required`, `category`, `is_active`, `created_by`, `created_at`) VALUES
-(1, 1, 'Kiezen wat we eten', 'Jij mag kiezen wat we vanavond eten', 100, 'eten', 1, 1, '2025-07-04 19:58:11'),
-(2, 1, 'Extra schermtijd', '1 uur extra tijd op tablet/computer', 150, 'entertainment', 1, 1, '2025-07-04 19:58:11'),
-(3, 1, 'Later naar bed', 'Op vrijdag 1 uur later naar bed', 200, 'privileges', 1, 1, '2025-07-04 19:58:11'),
-(4, 1, 'Vriendjes uitnodigen', 'Een vriend uitnodigen om te spelen', 250, 'social', 1, 1, '2025-07-04 19:58:11'),
-(5, 1, 'Bioscoopje', 'Samen naar de bioscoop', 500, 'uitjes', 1, 1, '2025-07-04 19:58:11'),
-(6, 1, 'Speelgoed kopen', 'Een klein speelgoed naar keuze', 400, 'materiaal', 1, 1, '2025-07-04 19:58:11'),
-(7, 1, 'Ijsje halen', 'Samen ijsje halen bij de ijssalon', 75, 'treats', 1, 1, '2025-07-04 19:58:11'),
-(8, 1, 'Opblijven weekend', 'In het weekend langer opblijven', 300, 'privileges', 1, 1, '2025-07-04 19:58:11'),
-(9, 2, 'Favoriete eten kiezen', 'Jij mag het avondeten kiezen', 100, 'eten', 1, 5, '2025-07-04 19:58:11'),
-(10, 2, 'Extra speeltijd', '1 uur extra buiten spelen', 120, 'entertainment', 1, 5, '2025-07-04 19:58:11'),
-(11, 2, 'Weekend uitstapje', 'Een leuk uitstapje in het weekend', 400, 'uitjes', 1, 5, '2025-07-04 19:58:11'),
-(12, 2, 'Nieuwe boek', 'Een nieuw boek naar keuze', 200, 'materiaal', 1, 5, '2025-07-04 19:58:11'),
-(13, 2, 'Film kijken', 'Een film kiezen om samen te kijken', 150, 'entertainment', 1, 5, '2025-07-04 19:58:11'),
-(14, 3, 'Pizza avond', 'Pizza bestellen voor het avondeten', 180, 'eten', 1, 9, '2025-07-04 19:58:11'),
-(15, 3, 'Game tijd', 'Extra tijd om games te spelen', 100, 'entertainment', 1, 9, '2025-07-04 19:58:11'),
-(16, 3, 'Pretpark bezoek', 'Een dagje naar het pretpark', 600, 'uitjes', 1, 9, '2025-07-04 19:58:11');
+(1, 1, 'Kiezen wat we eten', 'Jij mag kiezen wat we vanavond eten', 100, 'eten', 1, 1, '2025-07-04 17:58:11'),
+(2, 1, 'Extra schermtijd', '1 uur extra tijd op tablet/computer', 150, 'entertainment', 1, 1, '2025-07-04 17:58:11'),
+(3, 1, 'Later naar bed', 'Op vrijdag 1 uur later naar bed', 200, 'privileges', 1, 1, '2025-07-04 17:58:11'),
+(4, 1, 'Ijsje halen', 'Samen ijsje halen bij de ijssalon', 75, 'treats', 1, 1, '2025-07-04 17:58:11');
 
 -- --------------------------------------------------------
 
@@ -145,7 +160,6 @@ CREATE TABLE `reward_redemptions` (
   `reward_id` int(11) NOT NULL,
   `redeemed_by` int(11) NOT NULL,
   `points_spent` int(11) NOT NULL,
-  `status` enum('pending','approved','fulfilled','rejected') DEFAULT 'pending',
   `approved_by` int(11) DEFAULT NULL,
   `approved_at` timestamp NULL DEFAULT NULL,
   `notes` text DEFAULT NULL,
@@ -156,11 +170,8 @@ CREATE TABLE `reward_redemptions` (
 -- Dumping data for table `reward_redemptions`
 --
 
-INSERT INTO `reward_redemptions` (`id`, `reward_id`, `redeemed_by`, `points_spent`, `status`, `approved_by`, `approved_at`, `notes`, `created_at`) VALUES
-(1, 7, 3, 75, 'approved', 1, '2024-01-14 11:00:00', NULL, '2025-07-04 19:58:11'),
-(2, 1, 4, 100, 'pending', NULL, NULL, NULL, '2025-07-04 19:58:11'),
-(3, 11, 7, 120, 'approved', 5, '2024-01-13 14:30:00', NULL, '2025-07-04 19:58:11'),
-(4, 13, 8, 100, 'approved', 5, '2024-01-12 17:00:00', NULL, '2025-07-04 19:58:11');
+INSERT INTO `reward_redemptions` (`id`, `reward_id`, `redeemed_by`, `points_spent`, `approved_by`, `approved_at`, `notes`, `created_at`) VALUES
+(1, 2, 3, 150, NULL, NULL, NULL, '2025-07-07 03:37:33');
 
 -- --------------------------------------------------------
 
@@ -182,21 +193,12 @@ CREATE TABLE `standard_tasks` (
 --
 
 INSERT INTO `standard_tasks` (`id`, `name`, `description`, `default_points`, `category`, `created_at`) VALUES
-(1, 'Vaatwasser inruimen', 'Alle schone vaat uit de vaatwasser halen en op de juiste plek zetten', 10, 'keuken', '2025-07-04 19:58:11'),
-(2, 'Kamer opruimen', 'Eigen kamer netjes maken en speelgoed opruimen', 15, 'slaapkamer', '2025-07-04 19:58:11'),
-(3, 'Hond uitlaten', 'De hond een wandeling geven van minimaal 15 minuten', 20, 'huisdieren', '2025-07-04 19:58:11'),
-(4, 'Tafel dekken', 'De eettafel klaarmaken voor het avondeten', 8, 'keuken', '2025-07-04 19:58:11'),
-(5, 'Tafel afruimen', 'Na het eten de tafel leegmaken en schoonmaken', 8, 'keuken', '2025-07-04 19:58:11'),
-(6, 'Stofzuigen woonkamer', 'De woonkamer stofzuigen', 12, 'schoonmaak', '2025-07-04 19:58:11'),
-(7, 'Prullenbakken legen', 'Alle prullenbakken in huis legen', 10, 'schoonmaak', '2025-07-04 19:58:11'),
-(8, 'Huiswerk maken', 'Alle huiswerk voor school afmaken', 25, 'school', '2025-07-04 19:58:11'),
-(9, 'Tandenpoetsen', 'Tanden poetsen voor het slapen gaan', 5, 'persoonlijke_verzorging', '2025-07-04 19:58:11'),
-(10, 'Op tijd naar bed', 'Voor bedtijd in bed liggen', 10, 'gedrag', '2025-07-04 19:58:11'),
-(11, 'Afwassen', 'De afwas doen en alles netjes opruimen', 12, 'keuken', '2025-07-04 19:58:11'),
-(12, 'Bed opmaken', 'Eigen bed netjes opmaken', 5, 'slaapkamer', '2025-07-04 19:58:11'),
-(13, 'Kleren opruimen', 'Kleren opvouwen en in kast leggen', 8, 'slaapkamer', '2025-07-04 19:58:11'),
-(14, 'Planten water geven', 'Alle planten in huis water geven', 6, 'verzorging', '2025-07-04 19:58:11'),
-(15, 'Post ophalen', 'De post uit de brievenbus halen', 3, 'algemeen', '2025-07-04 19:58:11');
+(1, 'Vaatwasser inruimen', 'Alle schone vaat uit de vaatwasser halen en op de juiste plek zetten', 10, 'keuken', '2025-07-04 17:58:11'),
+(2, 'Kamer opruimen', 'Eigen kamer netjes maken en speelgoed opruimen', 15, 'slaapkamer', '2025-07-04 17:58:11'),
+(3, 'Hond uitlaten', 'De hond een wandeling geven van minimaal 15 minuten', 20, 'huisdieren', '2025-07-04 17:58:11'),
+(4, 'Tafel dekken', 'De eettafel klaarmaken voor het avondeten', 8, 'keuken', '2025-07-04 17:58:11'),
+(5, 'Stofzuigen woonkamer', 'De woonkamer stofzuigen', 12, 'schoonmaak', '2025-07-04 17:58:11'),
+(6, 'Huiswerk maken', 'Alle huiswerk voor school afmaken', 25, 'school', '2025-07-04 17:58:11');
 
 -- --------------------------------------------------------
 
@@ -222,17 +224,15 @@ CREATE TABLE `tasks` (
 --
 
 INSERT INTO `tasks` (`id`, `family_id`, `name`, `description`, `points`, `category`, `is_custom`, `is_active`, `created_by`, `created_at`) VALUES
-(1, 1, 'Vaatwasser inruimen', 'Alle schone vaat uit de vaatwasser halen en op de juiste plek zetten', 10, 'keuken', 0, 1, 1, '2025-07-04 19:58:11'),
-(2, 1, 'Kamer opruimen', 'Eigen kamer netjes maken en speelgoed opruimen', 15, 'slaapkamer', 0, 1, 1, '2025-07-04 19:58:11'),
-(3, 1, 'Hond uitlaten', 'De hond een wandeling geven van minimaal 15 minuten', 20, 'huisdieren', 0, 1, 1, '2025-07-04 19:58:11'),
-(4, 1, 'Tafel dekken', 'De eettafel klaarmaken voor het avondeten', 8, 'keuken', 0, 1, 1, '2025-07-04 19:58:11'),
-(5, 1, 'Huiswerk maken', 'Alle huiswerk voor school afmaken', 25, 'school', 0, 1, 1, '2025-07-04 19:58:11'),
-(6, 1, 'Speelkamer opruimen', 'De speelkamer netjes maken en alle speelgoed opruimen', 18, 'slaapkamer', 1, 1, 1, '2025-07-04 19:58:11'),
-(7, 2, 'Vaatwasser inruimen', 'Alle schone vaat uit de vaatwasser halen en op de juiste plek zetten', 10, 'keuken', 0, 1, 5, '2025-07-04 19:58:11'),
-(8, 2, 'Kamer opruimen', 'Eigen kamer netjes maken en speelgoed opruimen', 15, 'slaapkamer', 0, 1, 5, '2025-07-04 19:58:11'),
-(9, 2, 'Stofzuigen woonkamer', 'De woonkamer stofzuigen', 12, 'schoonmaak', 0, 1, 5, '2025-07-04 19:58:11'),
-(10, 2, 'Huiswerk maken', 'Alle huiswerk voor school afmaken', 25, 'school', 0, 1, 5, '2025-07-04 19:58:11'),
-(11, 2, 'Tuin harken', 'De tuin netjes harken en bladeren opruimen', 20, 'tuin', 1, 1, 5, '2025-07-04 19:58:11');
+(1, 1, 'Vaatwasser inruimen', 'Alle schone vaat uit de vaatwasser halen en op de juiste plek zetten', 10, 'keuken', 0, 1, 1, '2025-07-04 17:58:11'),
+(2, 1, 'Kamer opruimen', 'Eigen kamer netjes maken en speelgoed opruimen', 15, 'slaapkamer', 0, 1, 1, '2025-07-04 17:58:11'),
+(3, 1, 'Hond uitlaten', 'De hond een wandeling geven van minimaal 15 minuten', 20, 'huisdieren', 0, 1, 1, '2025-07-04 17:58:11'),
+(4, 1, 'Huiswerk maken', 'Alle huiswerk voor school afmaken', 25, 'school', 0, 1, 1, '2025-07-04 17:58:11'),
+(6, 1, 'Slaapkamer opruimen', NULL, 10, 'household', 1, 1, 1, '2025-07-07 05:51:21'),
+(7, 1, 'Huiswerk maken ', 'Alle huiswerk voor school afmaken', 15, 'household', 1, 1, 1, '2025-07-07 06:01:07'),
+(8, 1, 'Hond uitlaten ', 'De hond een wandeling geven van minimaal 15 minuten', 5, 'household', 1, 1, 1, '2025-07-07 06:01:28'),
+(9, 1, 'Slaapkamer opruimen ', NULL, 10, 'household', 1, 1, 1, '2025-07-07 06:01:43'),
+(10, 1, 'Vaatwasser inruimen', ' Alle schone vaat uit de vaatwasser halen en op de juiste plek zetten', 5, 'household', 1, 1, 1, '2025-07-07 06:02:03');
 
 -- --------------------------------------------------------
 
@@ -259,15 +259,18 @@ CREATE TABLE `task_assignments` (
 --
 
 INSERT INTO `task_assignments` (`id`, `task_id`, `assigned_to`, `assigned_by`, `status`, `completed_at`, `approved_at`, `approved_by`, `points_awarded`, `notes`, `created_at`) VALUES
-(1, 1, 3, 1, 'approved', '2024-01-15 09:30:00', '2024-01-15 10:00:00', 1, 10, NULL, '2025-07-04 19:58:11'),
-(2, 2, 3, 1, 'approved', '2024-01-15 13:20:00', '2024-01-15 14:00:00', 1, 15, NULL, '2025-07-04 19:58:11'),
-(3, 3, 4, 1, 'approved', '2024-01-15 15:45:00', '2024-01-15 16:00:00', 1, 20, NULL, '2025-07-04 19:58:11'),
-(4, 1, 4, 1, 'approved', '2024-01-16 08:15:00', '2024-01-16 09:00:00', 1, 10, NULL, '2025-07-04 19:58:11'),
-(5, 4, 3, 1, 'completed', '2024-01-16 16:30:00', NULL, NULL, NULL, NULL, '2025-07-04 19:58:11'),
-(6, 5, 3, 1, 'pending', NULL, NULL, NULL, NULL, NULL, '2025-07-04 19:58:11'),
-(7, 7, 7, 5, 'approved', '2024-01-15 10:00:00', '2024-01-15 11:00:00', 5, 10, NULL, '2025-07-04 19:58:11'),
-(8, 8, 7, 5, 'approved', '2024-01-15 14:30:00', '2024-01-15 15:00:00', 5, 15, NULL, '2025-07-04 19:58:11'),
-(9, 9, 8, 5, 'approved', '2024-01-15 17:00:00', '2024-01-15 18:00:00', 5, 12, NULL, '2025-07-04 19:58:11');
+(1, 4, 3, 1, 'pending', NULL, NULL, NULL, NULL, NULL, '2025-07-07 05:17:45'),
+(2, 4, 4, 1, 'pending', NULL, NULL, NULL, NULL, NULL, '2025-07-07 05:17:45'),
+(3, 3, 3, 1, 'approved', NULL, '2025-07-07 05:29:20', 3, 20, NULL, '2025-07-07 05:17:49'),
+(4, 3, 4, 1, 'pending', NULL, NULL, NULL, NULL, NULL, '2025-07-07 05:17:49'),
+(5, 2, 3, 1, 'rejected', NULL, NULL, NULL, NULL, NULL, '2025-07-07 05:39:22'),
+(6, 2, 4, 1, 'pending', NULL, NULL, NULL, NULL, NULL, '2025-07-07 05:39:22'),
+(7, 6, 3, 1, 'approved', NULL, '2025-07-07 05:51:56', 3, 10, NULL, '2025-07-07 05:51:25'),
+(8, 6, 4, 1, 'pending', NULL, NULL, NULL, NULL, NULL, '2025-07-07 05:51:25'),
+(9, 1, 3, 1, 'approved', NULL, '2025-07-07 05:57:14', 3, 10, NULL, '2025-07-07 05:56:42'),
+(10, 1, 4, 1, 'pending', NULL, NULL, NULL, NULL, NULL, '2025-07-07 05:56:42'),
+(11, 7, 3, 1, 'pending', NULL, NULL, NULL, NULL, NULL, '2025-07-07 06:06:16'),
+(12, 7, 4, 1, 'pending', NULL, NULL, NULL, NULL, NULL, '2025-07-07 06:06:16');
 
 -- --------------------------------------------------------
 
@@ -292,16 +295,16 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`id`, `username`, `password_hash`, `first_name`, `last_name`, `role`, `family_id`, `points`, `created_at`) VALUES
-(1, 'parent1', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'John', 'Johnson', 'parent', 1, 0, '2025-07-04 19:58:11'),
-(2, 'parent2', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Jane', 'Johnson', 'parent', 1, 0, '2025-07-04 19:58:11'),
-(3, 'child1', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Emma', 'Johnson', 'child', 1, 150, '2025-07-04 19:58:11'),
-(4, 'child2', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Liam', 'Johnson', 'child', 1, 75, '2025-07-04 19:58:11'),
-(5, 'papa_berg', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Piet', 'van der Berg', 'parent', 2, 0, '2025-07-04 19:58:11'),
-(6, 'mama_berg', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Maria', 'van der Berg', 'parent', 2, 0, '2025-07-04 19:58:11'),
-(7, 'lisa_berg', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Lisa', 'van der Berg', 'child', 2, 200, '2025-07-04 19:58:11'),
-(8, 'tom_berg', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Tom', 'van der Berg', 'child', 2, 120, '2025-07-04 19:58:11'),
-(9, 'dad_smith', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'David', 'Smith', 'parent', 3, 0, '2025-07-04 19:58:11'),
-(10, 'sarah_smith', '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'Sarah', 'Smith', 'child', 3, 95, '2025-07-04 19:58:11');
+(1, 'parent1', '$2b$10$3CH/Yo8AMABYnRH6oDS9xuXAjaGkMJnJFX96f9x7Gd9qsLng32jtq', 'John', 'Johnson', 'parent', 1, 0, '2025-07-04 17:58:11'),
+(2, 'parent2', '$2b$10$3CH/Yo8AMABYnRH6oDS9xuXAjaGkMJnJFX96f9x7Gd9qsLng32jtq', 'Jane', 'Johnson', 'parent', 1, 0, '2025-07-04 17:58:11'),
+(3, 'child1', '$2b$10$3CH/Yo8AMABYnRH6oDS9xuXAjaGkMJnJFX96f9x7Gd9qsLng32jtq', 'Emma', 'Johnson', 'child', 1, 40, '2025-07-04 17:58:11'),
+(4, 'child2', '$2b$10$3CH/Yo8AMABYnRH6oDS9xuXAjaGkMJnJFX96f9x7Gd9qsLng32jtq', 'Liam', 'Johnson', 'child', 1, 75, '2025-07-04 17:58:11'),
+(5, 'papa_berg', '$2b$10$3CH/Yo8AMABYnRH6oDS9xuXAjaGkMJnJFX96f9x7Gd9qsLng32jtq', 'Piet', 'van der Berg', 'parent', 2, 0, '2025-07-04 17:58:11'),
+(6, 'mama_berg', '$2b$10$3CH/Yo8AMABYnRH6oDS9xuXAjaGkMJnJFX96f9x7Gd9qsLng32jtq', 'Maria', 'van der Berg', 'parent', 2, 0, '2025-07-04 17:58:11'),
+(7, 'lisa_berg', '$2b$10$3CH/Yo8AMABYnRH6oDS9xuXAjaGkMJnJFX96f9x7Gd9qsLng32jtq', 'Lisa', 'van der Berg', 'child', 2, 200, '2025-07-04 17:58:11'),
+(8, 'tom_berg', '$2b$10$3CH/Yo8AMABYnRH6oDS9xuXAjaGkMJnJFX96f9x7Gd9qsLng32jtq', 'Tom', 'van der Berg', 'child', 2, 120, '2025-07-04 17:58:11'),
+(9, 'dad_smith', '$2b$10$3CH/Yo8AMABYnRH6oDS9xuXAjaGkMJnJFX96f9x7Gd9qsLng32jtq', 'David', 'Smith', 'parent', 3, 0, '2025-07-04 17:58:11'),
+(10, 'sarah_smith', '$2b$10$3CH/Yo8AMABYnRH6oDS9xuXAjaGkMJnJFX96f9x7Gd9qsLng32jtq', 'Sarah', 'Smith', 'child', 3, 95, '2025-07-04 17:58:11');
 
 -- --------------------------------------------------------
 
@@ -369,8 +372,16 @@ ALTER TABLE `points_transactions`
   ADD PRIMARY KEY (`id`),
   ADD KEY `task_assignment_id` (`task_assignment_id`),
   ADD KEY `created_by` (`created_by`),
-  ADD KEY `idx_points_transactions_user_id` (`user_id`),
-  ADD KEY `idx_points_transactions_created_at` (`created_at`);
+  ADD KEY `idx_points_transactions_user_id` (`user_id`);
+
+--
+-- Indexes for table `profile_images`
+--
+ALTER TABLE `profile_images`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `uploaded_by` (`uploaded_by`),
+  ADD KEY `family_id` (`family_id`);
 
 --
 -- Indexes for table `rewards`
@@ -378,8 +389,7 @@ ALTER TABLE `points_transactions`
 ALTER TABLE `rewards`
   ADD PRIMARY KEY (`id`),
   ADD KEY `created_by` (`created_by`),
-  ADD KEY `idx_rewards_family_id` (`family_id`),
-  ADD KEY `idx_rewards_is_active` (`is_active`);
+  ADD KEY `idx_rewards_family_id` (`family_id`);
 
 --
 -- Indexes for table `reward_redemptions`
@@ -401,9 +411,8 @@ ALTER TABLE `standard_tasks`
 --
 ALTER TABLE `tasks`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `created_by` (`created_by`),
   ADD KEY `idx_tasks_family_id` (`family_id`),
-  ADD KEY `idx_tasks_is_active` (`is_active`);
+  ADD KEY `created_by` (`created_by`);
 
 --
 -- Indexes for table `task_assignments`
@@ -413,8 +422,7 @@ ALTER TABLE `task_assignments`
   ADD KEY `task_id` (`task_id`),
   ADD KEY `assigned_by` (`assigned_by`),
   ADD KEY `approved_by` (`approved_by`),
-  ADD KEY `idx_task_assignments_assigned_to` (`assigned_to`),
-  ADD KEY `idx_task_assignments_status` (`status`);
+  ADD KEY `idx_task_assignments_assigned_to` (`assigned_to`);
 
 --
 -- Indexes for table `users`
@@ -422,7 +430,6 @@ ALTER TABLE `task_assignments`
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `username` (`username`),
-  ADD KEY `idx_users_username` (`username`),
   ADD KEY `idx_users_family_id` (`family_id`);
 
 --
@@ -446,43 +453,49 @@ ALTER TABLE `families`
 -- AUTO_INCREMENT for table `points_transactions`
 --
 ALTER TABLE `points_transactions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+
+--
+-- AUTO_INCREMENT for table `profile_images`
+--
+ALTER TABLE `profile_images`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT for table `rewards`
 --
 ALTER TABLE `rewards`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `reward_redemptions`
 --
 ALTER TABLE `reward_redemptions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `standard_tasks`
 --
 ALTER TABLE `standard_tasks`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `tasks`
 --
 ALTER TABLE `tasks`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `task_assignments`
 --
 ALTER TABLE `task_assignments`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- Constraints for dumped tables
@@ -495,6 +508,14 @@ ALTER TABLE `points_transactions`
   ADD CONSTRAINT `points_transactions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `points_transactions_ibfk_2` FOREIGN KEY (`task_assignment_id`) REFERENCES `task_assignments` (`id`) ON DELETE SET NULL,
   ADD CONSTRAINT `points_transactions_ibfk_3` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `profile_images`
+--
+ALTER TABLE `profile_images`
+  ADD CONSTRAINT `profile_images_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `profile_images_ibfk_2` FOREIGN KEY (`uploaded_by`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `profile_images_ibfk_3` FOREIGN KEY (`family_id`) REFERENCES `families` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `rewards`
