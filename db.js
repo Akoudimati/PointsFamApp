@@ -9,40 +9,113 @@ class Database {
     }
 
     init() {
+        // Determine database configuration based on environment
+        const dbConfig = this.getDatabaseConfig();
+        
         // Create connection pool for better performance
-        this.pool = mysql.createPool({
-            host: process.env.DB_HOST || 'localhost',
-            user: process.env.DB_USER || 'root',
-            password: process.env.DB_PASSWORD || '',
-            database: process.env.DB_NAME || 'pointsfam',
-            port: process.env.DB_PORT || 3306,
-            waitForConnections: true,
-            connectionLimit: 10,
-            queueLimit: 0,
-            charset: 'utf8mb4',
-            // SSL configuration for production
-            ssl: process.env.NODE_ENV === 'production' ? {
-                rejectUnauthorized: false
-            } : false,
-            // Connection timeout and retry settings
-            acquireTimeout: 60000,
-            timeout: 60000,
-            reconnect: true
-        });
+        this.pool = mysql.createPool(dbConfig);
 
         // Test connection
         this.testConnection();
     }
 
+    getDatabaseConfig() {
+        // If environment variables are set, use them
+        if (process.env.DB_HOST && process.env.DB_HOST !== 'localhost') {
+            return {
+                host: process.env.DB_HOST,
+                user: process.env.DB_USER,
+                password: process.env.DB_PASSWORD,
+                database: process.env.DB_NAME || 'pointsfam',
+                port: process.env.DB_PORT || 3306,
+                waitForConnections: true,
+                connectionLimit: 10,
+                queueLimit: 0,
+                charset: 'utf8mb4',
+                ssl: {
+                    rejectUnauthorized: false
+                }
+            };
+        }
+
+        // If on production but no DB_HOST, use working cloud database
+        if (process.env.NODE_ENV === 'production' && !process.env.DB_HOST) {
+            return {
+                host: 'roundhouse.proxy.rlwy.net',
+                user: 'root',
+                password: 'GQRLdYiSYbWRhHzPQTdoFpBtCKKIBUBc',
+                database: 'pointsfam',
+                port: 21478,
+                waitForConnections: true,
+                connectionLimit: 10,
+                queueLimit: 0,
+                charset: 'utf8mb4',
+                ssl: {
+                    rejectUnauthorized: false
+                }
+            };
+        }
+
+        // Default to localhost for development
+        return {
+            host: 'localhost',
+            user: 'root',
+            password: '',
+            database: 'pointsfam',
+            port: 3306,
+            waitForConnections: true,
+            connectionLimit: 10,
+            queueLimit: 0,
+            charset: 'utf8mb4',
+            ssl: false
+        };
+    }
+
     async testConnection() {
         try {
             const connection = await this.pool.getConnection();
-            console.log('✅ Connected to MySQL database');
+            const dbConfig = this.getDatabaseConfig();
+            console.log(`✅ Connected to MySQL database (${dbConfig.host}:${dbConfig.port})`);
             connection.release();
         } catch (err) {
             console.error('❌ Database connection error:', err.message);
-            throw err;
+            
+            // If localhost fails in production, try fallback cloud database
+            if (process.env.NODE_ENV === 'production' && err.code === 'ECONNREFUSED') {
+                console.log('🔄 Trying fallback cloud database...');
+                try {
+                    await this.initFallbackDatabase();
+                    console.log('✅ Connected to fallback cloud database');
+                } catch (fallbackErr) {
+                    console.error('❌ Fallback database also failed:', fallbackErr.message);
+                    throw fallbackErr;
+                }
+            } else {
+                throw err;
+            }
         }
+    }
+
+    async initFallbackDatabase() {
+        // Create new pool with cloud database
+        this.pool = mysql.createPool({
+            host: 'roundhouse.proxy.rlwy.net',
+            user: 'root',
+            password: 'GQRLdYiSYbWRhHzPQTdoFpBtCKKIBUBc',
+            database: 'pointsfam',
+            port: 21478,
+            waitForConnections: true,
+            connectionLimit: 10,
+            queueLimit: 0,
+            charset: 'utf8mb4',
+            ssl: {
+                rejectUnauthorized: false
+            }
+        });
+        
+        // Test the fallback connection
+        const connection = await this.pool.getConnection();
+        connection.release();
     }
 
     // ==============================================

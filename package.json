@@ -4,8 +4,9 @@
   "description": "Web-based points app for families - children earn points for good behavior and household tasks",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node start.js",
     "dev": "nodemon index.js",
+    "direct": "node index.js",
     "init-db": "node scripts/init-database.js"
   },
   "keywords": [

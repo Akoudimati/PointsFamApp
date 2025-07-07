@@ -8,13 +8,16 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: DB_HOST
-        value: your-mysql-host
-      - key: DB_USER
-        value: your-mysql-user
-      - key: DB_PASSWORD
-        value: your-mysql-password
-      - key: DB_NAME
-        value: pointsfam
-      - key: DB_PORT
-        value: 3306 
+      - key: SESSION_SECRET
+        value: your-secure-session-secret-key-2024
+      # Database configuration (optional - app will use fallback if not set)
+      # - key: DB_HOST
+      #   value: your-mysql-host
+      # - key: DB_USER
+      #   value: your-mysql-user
+      # - key: DB_PASSWORD
+      #   value: your-mysql-password
+      # - key: DB_NAME
+      #   value: pointsfam
+      # - key: DB_PORT
+      #   value: 3306 

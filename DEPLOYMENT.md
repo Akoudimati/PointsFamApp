@@ -18,9 +18,11 @@
 ### Step 2: Deploy to Render
 1. Connect your GitHub repository to Render
 2. Create a new Web Service
-3. Configure the following environment variables:
+3. **No database configuration required!** The app will automatically use a fallback cloud database
+4. Optional: Configure your own database with environment variables:
    ```
    NODE_ENV=production
+   SESSION_SECRET=your-secure-session-secret
    DB_HOST=your-mysql-host
    DB_USER=your-mysql-user
    DB_PASSWORD=your-mysql-password
