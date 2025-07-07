@@ -180,40 +180,7 @@ app.get('/api/user', requireAuth, (req, res) => {
     res.json({ user: req.session.user });
 });
 
-// Dashboard data endpoint
-app.get('/api/dashboard', requireAuth, async (req, res) => {
-    try {
-        const user = req.session.user;
-        
-        // Get family members
-        const familyMembers = await db.getFamilyMembers(user.familyId);
-        
-        // Get tasks based on role
-        let tasks = [];
-        if (user.role === 'parent') {
-            tasks = await db.getTasksForFamily(user.familyId);
-        } else {
-            tasks = await db.getTasksForUser(user.id);
-        }
-        
-        // Get rewards
-        const rewards = await db.getRewards(user.familyId);
-        
-        // Get points history
-        const pointsHistory = await db.getPointsHistory(user.id);
-        
-        res.json({
-            user: user,
-            family_members: familyMembers,
-            tasks: tasks,
-            rewards: rewards,
-            points_history: pointsHistory
-        });
-    } catch (error) {
-        console.error('Dashboard data error:', error);
-        res.status(500).json({ error: 'Error loading dashboard data' });
-    }
-});
+// Dashboard data endpoint - REMOVED: Duplicate endpoint without type field
 
 // Session debug endpoint (remove in production)
 app.get('/api/debug/session', (req, res) => {
