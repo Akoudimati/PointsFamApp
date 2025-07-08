@@ -183,7 +183,16 @@ app.get('/api/user', requireAuth, (req, res) => {
 // Messaging endpoints
 app.get('/api/conversations', requireAuth, async (req, res) => {
     try {
-        const conversations = await db.getConversationsForUser(req.session.user.id);
+        const userId = req.session.user.id;
+        const familyOnly = req.query.family_only === 'true';
+        
+        let conversations;
+        if (familyOnly) {
+            conversations = await db.getFamilyConversationsForUser(userId);
+        } else {
+            conversations = await db.getConversationsForUser(userId);
+        }
+
         res.json({ conversations });
     } catch (error) {
         console.error('Error fetching conversations:', error);
@@ -1350,12 +1359,9 @@ app.get('/api/conversations/:conversationId/messages', requireAuth, async (req, 
         const offset = parseInt(req.query.offset) || 0;
         const user = req.session.user;
 
-        console.log('Loading messages:', { conversationId, limit, offset, userId: user.id });
-        
         // Check if user is participant in conversation
         const conversation = await db.getConversationById(conversationId, user.id);
         if (!conversation) {
-            console.log('Access denied - User not in conversation:', { userId: user.id, conversationId });
             return res.status(403).json({ 
                 error: 'Je hebt geen toegang tot dit gesprek',
                 code: 'ACCESS_DENIED'
@@ -1363,7 +1369,6 @@ app.get('/api/conversations/:conversationId/messages', requireAuth, async (req, 
         }
         
         const messages = await db.getMessages(conversationId, limit, offset);
-        console.log(`Retrieved ${messages.length} messages for conversation ${conversationId}`);
         
         res.json({ 
             messages,
@@ -1380,6 +1385,34 @@ app.get('/api/conversations/:conversationId/messages', requireAuth, async (req, 
             code: 'LOAD_ERROR',
             details: error.message
         });
+    }
+});
+
+// Message check endpoint
+app.get('/api/conversations/:conversationId/messages/check', requireAuth, async (req, res) => {
+    try {
+        const conversationId = req.params.conversationId;
+        const userId = req.session.user.id;
+
+        // Verify user has access to this conversation
+        const conversation = await db.getConversationById(conversationId, userId);
+        if (!conversation) {
+            return res.status(403).json({ 
+                error: 'Je hebt geen toegang tot dit gesprek',
+                code: 'ACCESS_DENIED'
+            });
+        }
+
+        // Get message count and last message timestamp
+        const messageInfo = await db.getMessageInfo(conversationId);
+        
+        res.json({
+            messageCount: messageInfo.count,
+            lastMessageTimestamp: messageInfo.lastTimestamp
+        });
+    } catch (error) {
+        console.error('Error checking messages:', error);
+        res.status(500).json({ error: 'Er is een fout opgetreden bij het controleren van berichten.' });
     }
 });
 

@@ -1191,6 +1191,28 @@ class Database {
         }
     }
 
+    async getMessageInfo(conversationId) {
+        try {
+            const sql = `
+                SELECT 
+                    COUNT(*) as count,
+                    MAX(created_at) as lastTimestamp
+                FROM messages 
+                WHERE conversation_id = ?
+                  AND is_deleted = 0
+            `;
+            
+            const [result] = await this.pool.query(sql, [conversationId]);
+            return {
+                count: result[0].count,
+                lastTimestamp: result[0].lastTimestamp
+            };
+        } catch (error) {
+            console.error('Error in getMessageInfo:', error);
+            throw error;
+        }
+    }
+
     async getMessages(conversationId, limit = 50, offset = 0) {
         try {
             const sql = `
@@ -1203,12 +1225,13 @@ class Database {
                 FROM messages m
                 JOIN users u ON m.sender_id = u.id
                 WHERE m.conversation_id = ?
+                  AND m.is_deleted = 0
                 ORDER BY m.created_at DESC
                 LIMIT ? OFFSET ?
             `;
             
             const [messages] = await this.pool.query(sql, [conversationId, limit, offset]);
-            return messages;
+            return messages.reverse(); // Return in chronological order
         } catch (error) {
             console.error('Error in getMessages:', error);
             throw error;
@@ -1344,6 +1367,46 @@ class Database {
         }
     }
 
+    async ensureFamilyConversation(familyId) {
+        try {
+            // Check if family conversation already exists
+            const [existing] = await this.pool.execute(
+                `SELECT id FROM conversations 
+                 WHERE type = 'family' AND family_id = ?
+                 LIMIT 1`,
+                [familyId]
+            );
+
+            if (existing.length > 0) {
+                return existing[0].id;
+            }
+
+            // Create new family conversation
+            const [result] = await this.pool.execute(
+                `INSERT INTO conversations (type, title, family_id, created_by, created_at)
+                 VALUES ('family', 'Familie Chat', ?, 1, NOW())`,
+                [familyId]
+            );
+
+            const conversationId = result.insertId;
+
+            // Add all family members as participants
+            const familyMembers = await this.getFamilyMembers(familyId);
+            for (const member of familyMembers) {
+                await this.pool.execute(
+                    `INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at)
+                     VALUES (?, ?, 'member', NOW())`,
+                    [conversationId, member.id]
+                );
+            }
+
+            return conversationId;
+        } catch (error) {
+            console.error('Error ensuring family conversation:', error);
+            throw error;
+        }
+    }
+
     async getFamilyConversationsForUser(userId) {
         try {
             // Get user's family ID first
@@ -1351,6 +1414,9 @@ class Database {
             if (!user || !user.family_id) {
                 return [];
             }
+
+            // Ensure family conversation exists
+            await this.ensureFamilyConversation(user.family_id);
 
             // Get only family conversations for user
             const [conversations] = await this.pool.execute(
@@ -1365,54 +1431,21 @@ class Database {
                 [userId, user.family_id]
             );
 
-            // For each conversation, get the last message and unread count
-            for (let conversation of conversations) {
-                // Get last message
-                const [lastMessage] = await this.pool.execute(
-                    `SELECT m.content, m.created_at, u.first_name as sender_name
-                     FROM messages m
-                     JOIN users u ON m.sender_id = u.id
-                     WHERE m.conversation_id = ?
-                     ORDER BY m.created_at DESC
-                     LIMIT 1`,
-                    [conversation.id]
-                );
-
-                if (lastMessage.length > 0) {
-                    conversation.last_message_content = lastMessage[0].content;
-                    conversation.last_message_at = lastMessage[0].created_at;
-                    conversation.last_sender_name = lastMessage[0].sender_name;
-                } else {
-                    conversation.last_message_content = null;
-                    conversation.last_message_at = null;
-                    conversation.last_sender_name = null;
-                }
-
-                // Get unread count
-                const [unreadCount] = await this.pool.execute(
-                    `SELECT COUNT(*) as unread_count
-                     FROM messages m
-                     LEFT JOIN message_status ms ON m.id = ms.message_id AND ms.user_id = ?
-                     WHERE m.conversation_id = ? 
-                           AND m.sender_id != ?
-                           AND (ms.status IS NULL OR ms.status != 'read')`,
-                    [userId, conversation.id, userId]
-                );
-
-                conversation.unread_count = unreadCount[0]?.unread_count || 0;
+            // Add last message and unread count for each conversation
+            for (let conv of conversations) {
+                const lastMessage = await this.getLastMessage(conv.id);
+                const unreadCount = await this.getUnreadCount(conv.id, userId);
+                
+                conv.last_message = lastMessage;
+                conv.last_message_content = lastMessage ? lastMessage.content : null;
+                conv.last_message_at = lastMessage ? lastMessage.created_at : conv.created_at;
+                conv.unread_count = unreadCount;
             }
 
-            // Sort by last message time
-            conversations.sort((a, b) => {
-                const aTime = a.last_message_at || a.created_at;
-                const bTime = b.last_message_at || b.created_at;
-                return new Date(bTime) - new Date(aTime);
-            });
-
             return conversations;
-        } catch (err) {
-            console.error('Error getting family conversations for user:', err);
-            throw err;
+        } catch (error) {
+            console.error('Error getting family conversations:', error);
+            throw error;
         }
     }
 
@@ -1444,6 +1477,43 @@ class Database {
         } catch (err) {
             console.error('Error getting family members for messaging:', err);
             throw err;
+        }
+    }
+
+    async getLastMessage(conversationId) {
+        try {
+            const [messages] = await this.pool.execute(
+                `SELECT m.*, u.first_name, u.last_name
+                 FROM messages m
+                 JOIN users u ON m.sender_id = u.id
+                 WHERE m.conversation_id = ? AND m.is_deleted = 0
+                 ORDER BY m.created_at DESC
+                 LIMIT 1`,
+                [conversationId]
+            );
+            return messages[0] || null;
+        } catch (error) {
+            console.error('Error getting last message:', error);
+            throw error;
+        }
+    }
+
+    async getUnreadCount(conversationId, userId) {
+        try {
+            const [result] = await this.pool.execute(
+                `SELECT COUNT(*) as count
+                 FROM messages m
+                 LEFT JOIN message_status ms ON m.id = ms.message_id AND ms.user_id = ?
+                 WHERE m.conversation_id = ? 
+                   AND m.sender_id != ? 
+                   AND m.is_deleted = 0
+                   AND (ms.status IS NULL OR ms.status != 'read')`,
+                [userId, conversationId, userId]
+            );
+            return result[0].count || 0;
+        } catch (error) {
+            console.error('Error getting unread count:', error);
+            throw error;
         }
     }
 }

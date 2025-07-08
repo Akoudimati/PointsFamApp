@@ -10,7 +10,11 @@ class MessagingManager {
         this.selectedUsers = [];
         this.searchTimeout = null;
         this.messagePollingInterval = null;
+        this.lastMessageCount = 0;
+        this.lastMessageTimestamp = null;
         this.isDashboard = window.location.pathname === '/dashboard.html' || window.location.pathname === '/dashboard';
+        this.isLoadingMessages = false;
+        this.messageCache = new Map(); // Cache for messages
     }
 
     async init() {
@@ -19,7 +23,7 @@ class MessagingManager {
             await this.loadConversations();
             this.setupEventListeners();
         }
-        this.startMessagePolling();
+        // Don't start polling on init - only when conversation is selected
     }
 
     async checkAuthentication() {
@@ -52,32 +56,55 @@ class MessagingManager {
 
     async loadConversations() {
         try {
+            // Show loading state
+            const conversationsList = document.getElementById('conversations-list');
+            conversationsList.innerHTML = `
+                <div class="loading-conversations text-center p-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Laden...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Gesprekken laden...</p>
+                </div>
+            `;
+
             console.log('Loading family conversations...');
             const response = await fetch('/api/conversations?family_only=true', {
-                credentials: 'include'
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json'
+                }
             });
             
             console.log('Response status:', response.status);
             
             if (!response.ok) {
                 if (response.status === 401) {
+                    console.log('Authentication required, redirecting to login');
                     window.location.href = '/login.html';
                     return;
                 }
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorData = await response.json();
+                console.error('API Error:', errorData);
+                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
             }
             
             const data = await response.json();
             console.log('Family conversations loaded:', data);
+            
+            // Store conversations
             this.conversations = data.conversations || [];
+            console.log('Stored conversations:', this.conversations.length);
+            
+            // Clear loading state and render conversations
+            conversationsList.innerHTML = '';
             this.renderConversations();
             
-            // Also load family members
+            // Load family members after conversations
             await this.loadFamilyMembers();
             
         } catch (error) {
             console.error('Error loading conversations:', error);
-            this.showNotification('Er is een fout opgetreden bij het laden van gesprekken.', 'danger');
+            this.showNotification(`Er is een fout opgetreden bij het laden van gesprekken: ${error.message}`, 'danger');
             this.renderConversationsError();
         }
     }
@@ -125,10 +152,14 @@ class MessagingManager {
         
         if (!this.conversations || this.conversations.length === 0) {
             conversationsList.innerHTML = `
-                <div class="text-center p-4">
-                    <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <div class="no-conversations text-center p-4">
+                    <i class="fas fa-comments fa-3x text-muted mb-3"></i>
                     <h5 class="text-muted">Geen familie gesprekken</h5>
-                    <p class="text-muted">Start een familie gesprek om te beginnen</p>
+                    <p class="text-muted">Start een gesprek om te beginnen</p>
+                    <button class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#newChatModal">
+                        <i class="fas fa-plus me-1"></i>
+                        Nieuw gesprek
+                    </button>
                 </div>
             `;
             return;
@@ -149,11 +180,15 @@ class MessagingManager {
                                 <h6 class="mb-0">${this.escapeHtml(title)}</h6>
                                 ${typeBadge}
                             </div>
-                            <div class="conversation-last-message">${this.escapeHtml(lastMessage)}</div>
+                            <div class="conversation-last-message text-muted">
+                                ${this.escapeHtml(lastMessage)}
+                            </div>
                         </div>
                         <div class="text-end">
-                            <div class="conversation-time">${timeAgo}</div>
-                            ${unreadCount > 0 ? `<span class="unread-badge">${unreadCount}</span>` : ''}
+                            <div class="conversation-time text-muted small">${timeAgo}</div>
+                            ${unreadCount > 0 ? `
+                                <span class="badge bg-primary rounded-pill">${unreadCount}</span>
+                            ` : ''}
                         </div>
                     </div>
                 </div>
@@ -307,6 +342,12 @@ class MessagingManager {
             document.getElementById('conversations-sidebar').classList.remove('show');
         });
 
+        // Back button functionality
+        document.querySelector('.mobile-back-button').addEventListener('click', (e) => {
+            e.preventDefault();
+            this.goBackToConversations();
+        });
+
         // Logout functionality
         document.getElementById('logout-btn').addEventListener('click', async () => {
             await this.logout();
@@ -323,6 +364,9 @@ class MessagingManager {
                 this.showNotification('Geen geldig gesprek geselecteerd', 'danger');
                 return;
             }
+
+            // Stop any existing polling
+            this.stopMessagePolling();
 
             // Fetch conversation details
             const response = await fetch(`/api/conversations/${conversationId}`, {
@@ -343,11 +387,17 @@ class MessagingManager {
             console.log('Conversation details:', conversation);
             console.log('Conversation participants:', participants);
 
+            // Set current conversation
+            this.currentConversationId = conversationId;
+
             // Render chat area
             this.renderChatArea(conversation, participants);
 
             // Load messages
             await this.loadMessages(conversationId);
+
+            // Start polling for this conversation
+            this.startMessagePolling();
 
             // Update UI state
             const conversationElements = document.querySelectorAll('.conversation-item');
@@ -378,83 +428,89 @@ class MessagingManager {
 
     async loadMessages(conversationId) {
         try {
-            console.log('Loading messages for conversation:', conversationId);
-            
-            // Validate conversationId
             if (!conversationId) {
                 console.error('No conversation ID provided');
-                this.showNotification('Geen gesprek geselecteerd', 'danger');
                 return;
             }
 
-            this.currentConversationId = conversationId;
-
-            // Show loading state
-            const chatMessages = document.getElementById('chat-messages');
-            if (chatMessages) {
-                chatMessages.innerHTML = `
-                    <div class="loading-messages">
-                        <div class="loading-spinner"></div>
-                        <p>Berichten laden...</p>
-                    </div>
-                `;
+            // Don't reload if we're already loading messages for this conversation
+            if (this.isLoadingMessages) {
+                console.log('Already loading messages, skipping...');
+                return;
             }
 
-            // Fetch messages with detailed logging
-            console.log('Fetching messages with parameters:', {
-                conversationId,
-                limit: 50,
-                offset: 0
-            });
+            this.isLoadingMessages = true;
 
-            const response = await fetch(`/api/conversations/${conversationId}/messages?limit=50&offset=0`, {
-                credentials: 'include',
-                headers: {
-                    'Accept': 'application/json'
+            // Check cache first
+            const cacheKey = `messages_${conversationId}`;
+            const cachedData = this.messageCache.get(cacheKey);
+            const now = Date.now();
+
+            // Use cache if available and less than 30 seconds old
+            if (cachedData && (now - cachedData.timestamp) < 30000) {
+                console.log('Using cached messages');
+                this.renderMessages(cachedData.messages);
+                this.isLoadingMessages = false;
+                return;
+            }
+
+            // Show loading state only on first load
+            if (!this.lastMessageCount) {
+                const chatMessages = document.getElementById('chat-messages');
+                if (chatMessages) {
+                    chatMessages.innerHTML = `
+                        <div class="loading-messages">
+                            <div class="loading-spinner"></div>
+                            <p>Berichten laden...</p>
+                        </div>
+                    `;
                 }
+            }
+
+            const response = await fetch(`/api/conversations/${conversationId}/messages`, {
+                credentials: 'include'
             });
-            
-            const data = await response.json();
-            console.log('Messages API full response:', data);
-            
+
             if (!response.ok) {
-                // More detailed error handling
-                const errorMessage = data.error || `HTTP error! status: ${response.status}`;
-                console.error('Message loading error:', errorMessage);
-                throw new Error(errorMessage);
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
+
+            const data = await response.json();
             
-            if (!Array.isArray(data.messages)) {
-                console.error('Invalid messages data:', data);
-                throw new Error('Ongeldige berichtgegevens ontvangen');
+            // Update cache
+            this.messageCache.set(cacheKey, {
+                messages: data.messages,
+                timestamp: now
+            });
+
+            // Update tracking variables
+            this.lastMessageCount = data.messages.length;
+            this.lastMessageTimestamp = data.messages.length > 0 ? 
+                data.messages[data.messages.length - 1].created_at : null;
+
+            // Only update UI if messages have changed
+            const messagesContainer = document.getElementById('chat-messages');
+            if (messagesContainer) {
+                const wasAtBottom = this.isScrolledToBottom(messagesContainer);
+                this.renderMessages(data.messages);
+                if (wasAtBottom) {
+                    this.scrollToBottom(messagesContainer);
+                }
             }
-            
-            console.log(`Loaded ${data.messages.length} messages`);
-            
-            // Render messages with additional logging
-            console.log('Rendering messages:', data.messages);
-            this.renderMessages(data.messages);
-            
+
+            // Mark messages as read
+            await this.markVisibleMessagesAsRead();
+
         } catch (error) {
             console.error('Error loading messages:', error);
-            
-            // More detailed error state in UI
-            const chatMessages = document.getElementById('chat-messages');
-            if (chatMessages) {
-                chatMessages.innerHTML = `
-                    <div class="error-message">
-                        <i class="fas fa-exclamation-circle me-2"></i>
-                        Er is een fout opgetreden bij het laden van berichten:
-                        <p class="text-danger">${error.message || 'Onbekende fout'}</p>
-                        <button class="btn btn-link btn-sm" onclick="messagingManager.loadMessages('${conversationId}')">
-                            Opnieuw proberen
-                        </button>
-                    </div>
-                `;
-            }
-            
-            this.showNotification(`Fout bij laden berichten: ${error.message || 'Onbekende fout'}`, 'danger');
+            this.showNotification('Er is een fout opgetreden bij het laden van berichten.', 'danger');
+        } finally {
+            this.isLoadingMessages = false;
         }
+    }
+
+    isScrolledToBottom(element) {
+        return Math.abs(element.scrollHeight - element.scrollTop - element.clientHeight) < 1;
     }
 
     renderMessages(messages) {
@@ -463,7 +519,7 @@ class MessagingManager {
 
         if (!messages || messages.length === 0) {
             chatMessages.innerHTML = `
-                <div class="text-center p-4">
+                <div class="no-messages text-center p-4">
                     <i class="fas fa-comments fa-3x text-muted mb-3"></i>
                     <h5 class="text-muted">Geen berichten</h5>
                     <p class="text-muted">Begin een gesprek door een bericht te sturen</p>
@@ -473,50 +529,86 @@ class MessagingManager {
         }
 
         // Group messages by date and sender
-        const groupedMessages = this.groupMessages(messages);
+        const messagesByDate = {};
+        let currentDate = '';
+        
+        messages.forEach(message => {
+            const messageDate = new Date(message.created_at).toLocaleDateString('nl-NL');
+            
+            if (!messagesByDate[messageDate]) {
+                messagesByDate[messageDate] = [];
+            }
+            
+            messagesByDate[messageDate].push(message);
+        });
+
         let messagesHTML = '';
-
-        groupedMessages.forEach((groupObj) => {
-            const isCurrentUser = groupObj.senderId === this.currentUser.id;
-            const messageAlignment = isCurrentUser ? 'justify-content-end' : 'justify-content-start';
-            const messageStyle = isCurrentUser ? 'sent' : 'received';
-
+        
+        // Render messages grouped by date
+        Object.entries(messagesByDate).forEach(([date, dateMessages]) => {
+            // Add date separator
             messagesHTML += `
-                <div class="message-group ${messageAlignment}">
-                    ${groupObj.messages.map((message, msgIndex) => {
-                        const time = this.formatMessageTime(message.created_at);
-                        const isFirstInGroup = msgIndex === 0;
-
-                        return `
-                            <div class="message ${messageStyle} ${isFirstInGroup ? 'with-avatar' : ''}" data-message-id="${message.id}">
-                                ${isFirstInGroup && !isCurrentUser ? `
-                                    <div class="message-avatar" style="background-color: ${this.getAvatarColor(message.sender_first_name)}">
-                                        ${message.sender_first_name.charAt(0).toUpperCase()}
-                                    </div>
-                                ` : ''}
-                                <div class="message-content">
-                                    ${isFirstInGroup && !isCurrentUser ? `
-                                        <div class="message-sender">
-                                            ${this.escapeHtml(message.sender_first_name)} ${this.escapeHtml(message.sender_last_name)}
-                                        </div>
-                                    ` : ''}
-                                    <div class="message-text">
-                                        ${this.formatMessageContent(message.content)}
-                                    </div>
-                                    <div class="message-time">
-                                        ${time}
-                                    </div>
-                                </div>
-                            </div>
-                        `;
-                    }).join('')}
+                <div class="message-date-separator">
+                    <span>${date}</span>
                 </div>
             `;
+
+            // Group messages by sender
+            let currentSender = null;
+            let messageGroup = [];
+
+            dateMessages.forEach((message, index) => {
+                if (currentSender !== message.sender_id) {
+                    // Render previous group if exists
+                    if (messageGroup.length > 0) {
+                        messagesHTML += this.renderMessageGroup(messageGroup);
+                    }
+                    
+                    // Start new group
+                    messageGroup = [message];
+                    currentSender = message.sender_id;
+                } else {
+                    // Add to current group
+                    messageGroup.push(message);
+                }
+
+                // Render last group
+                if (index === dateMessages.length - 1) {
+                    messagesHTML += this.renderMessageGroup(messageGroup);
+                }
+            });
         });
 
         chatMessages.innerHTML = messagesHTML;
-        this.scrollToBottom(chatMessages);
-        this.markVisibleMessagesAsRead();
+    }
+
+    renderMessageGroup(messages) {
+        if (!messages || messages.length === 0) return '';
+
+        const isCurrentUser = messages[0].sender_id === this.currentUser.id;
+        const messageAlignment = isCurrentUser ? 'justify-content-end' : 'justify-content-start';
+        const messageStyle = isCurrentUser ? 'sent' : 'received';
+        
+        return `
+            <div class="message-group ${messageAlignment}">
+                <div class="message-bubble-group">
+                    ${messages.map(message => `
+                        <div class="message-bubble ${messageStyle}">
+                            ${this.formatMessageContent(message.content)}
+                            <div class="message-meta">
+                                <span class="message-time">${this.formatMessageTime(message.created_at)}</span>
+                                ${message.is_edited ? '<span class="message-edited">(bewerkt)</span>' : ''}
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+                ${!isCurrentUser ? `
+                    <div class="message-sender">
+                        ${messages[0].sender_first_name}
+                    </div>
+                ` : ''}
+            </div>
+        `;
     }
 
     groupMessages(messages) {
@@ -862,16 +954,48 @@ class MessagingManager {
 
     startMessagePolling() {
         // Clear any existing polling
-        if (this.messagePollingInterval) {
-            clearInterval(this.messagePollingInterval);
+        this.stopMessagePolling();
+        
+        // Only start polling if we have a conversation selected
+        if (!this.currentConversationId) {
+            console.log('No conversation selected, not starting polling');
+            return;
         }
         
-        // Poll for new messages every 10 seconds
+        console.log('Starting message polling for conversation:', this.currentConversationId);
+        
+        // Initialize tracking variables
+        this.lastMessageCount = 0;
+        this.lastMessageTimestamp = null;
+        this.isLoadingMessages = false;
+        
+        // Poll for new messages every 30 seconds
         this.messagePollingInterval = setInterval(async () => {
-            if (this.currentConversationId) {
-                await this.loadMessages(this.currentConversationId);
+            if (!this.currentConversationId || this.isLoadingMessages) {
+                return;
             }
-        }, 10000);
+
+            try {
+                const response = await fetch(`/api/conversations/${this.currentConversationId}/messages/check`, {
+                    credentials: 'include'
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // Only reload if there are new messages
+                if (data.messageCount !== this.lastMessageCount || 
+                    data.lastMessageTimestamp !== this.lastMessageTimestamp) {
+                    console.log('New messages detected, reloading...');
+                    await this.loadMessages(this.currentConversationId);
+                }
+            } catch (error) {
+                console.error('Error checking messages:', error);
+            }
+        }, 30000); // Check every 30 seconds
     }
 
     stopMessagePolling() {
@@ -879,6 +1003,7 @@ class MessagingManager {
             clearInterval(this.messagePollingInterval);
             this.messagePollingInterval = null;
         }
+        this.messageCache.clear(); // Clear message cache when stopping polling
     }
 
     async logout() {
@@ -939,6 +1064,23 @@ class MessagingManager {
         
         const charCode = name.toLowerCase().charCodeAt(0) - 97;
         return colors[charCode % colors.length];
+    }
+
+    goBackToConversations() {
+        // Stop message polling when going back
+        this.stopMessagePolling();
+        
+        // Hide active chat
+        document.getElementById('active-chat').classList.add('d-none');
+        // Show no chat selected message
+        document.getElementById('no-chat-selected').classList.remove('d-none');
+        // Clear current conversation
+        this.currentConversationId = null;
+        // Clear selected conversation highlight
+        const conversationElements = document.querySelectorAll('.conversation-item');
+        conversationElements.forEach(el => el.classList.remove('active'));
+        // Show conversations list on mobile
+        document.getElementById('conversations-sidebar').classList.add('show');
     }
 }
 
