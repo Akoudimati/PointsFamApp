@@ -10,8 +10,6 @@ class SimpleFamilyMessaging {
     }
 
     async init() {
-        console.log('🚀 Initializing Simple Family Messaging');
-        
         try {
             // Get current user
             await this.getCurrentUser();
@@ -22,10 +20,8 @@ class SimpleFamilyMessaging {
             // Setup event listeners
             this.setupEventListeners();
             
-            console.log('✅ Simple messaging initialized');
-            
         } catch (error) {
-            console.error('❌ Initialization failed:', error);
+            console.error('Messaging initialization failed:', error);
             this.showAlert('danger', 'Kon berichten niet laden');
         }
     }
@@ -49,7 +45,7 @@ class SimpleFamilyMessaging {
                 userNameElement.textContent = `${this.currentUser.firstName} ${this.currentUser.lastName}`;
             }
             
-            console.log('👤 Current user:', this.currentUser.firstName, this.currentUser.role);
+            // User loaded successfully
             
         } catch (error) {
             console.error('Error getting current user:', error);
@@ -72,7 +68,7 @@ class SimpleFamilyMessaging {
             
             this.renderFamilyMembers();
             
-            console.log('👨‍👩‍👧‍👦 Loaded family members:', this.familyMembers.length);
+            // Family members loaded successfully
             
         } catch (error) {
             console.error('Error loading family members:', error);
@@ -127,7 +123,7 @@ class SimpleFamilyMessaging {
         const member = this.familyMembers.find(m => m.id === userId);
         if (!member) return;
         
-        console.log('💬 Starting chat with:', member.first_name);
+        // Starting chat with family member
         
         this.currentChatUser = member;
         this.showChatArea();
@@ -259,7 +255,7 @@ class SimpleFamilyMessaging {
             if (data.success) {
                 input.value = '';
                 await this.loadMessages(); // Reload messages
-                console.log('✅ Message sent successfully');
+                // Message sent successfully
             } else {
                 throw new Error(data.message || 'Failed to send message');
             }
