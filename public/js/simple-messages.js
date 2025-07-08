@@ -46,10 +46,10 @@ class SimpleFamilyMessaging {
             // Update UI
             const userNameElement = document.getElementById('user-name');
             if (userNameElement) {
-                userNameElement.textContent = `${this.currentUser.first_name} ${this.currentUser.last_name}`;
+                userNameElement.textContent = `${this.currentUser.firstName} ${this.currentUser.lastName}`;
             }
             
-            console.log('👤 Current user:', this.currentUser.first_name, this.currentUser.role);
+            console.log('👤 Current user:', this.currentUser.firstName, this.currentUser.role);
             
         } catch (error) {
             console.error('Error getting current user:', error);
