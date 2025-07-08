@@ -570,37 +570,10 @@ class DashboardManager {
     }
 }
 
-// Initialize messaging system
-let messagingManager;
-
+// Dashboard initialization - no messaging system needed
 document.addEventListener('DOMContentLoaded', async () => {
-    // Initialize messaging manager
-    messagingManager = new MessagingManager();
-    await messagingManager.init();
-    
-    // Load family chat messages
-    const familyChatId = 1; // The Johnson Family chat ID
-    await messagingManager.loadMessages(familyChatId);
-    
-    // Setup message input
-    const messageInput = document.getElementById('message-input');
-    if (messageInput) {
-        messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                messagingManager.sendMessage();
-            }
-        });
-        
-        // Auto-resize textarea
-        messageInput.addEventListener('input', () => {
-            messageInput.style.height = 'auto';
-            messageInput.style.height = messageInput.scrollHeight + 'px';
-        });
-    }
-    
-    // Start polling for new messages
-    messagingManager.startMessagePolling();
+    // Dashboard will initialize without messaging
+    console.log('Dashboard loaded - messaging handled separately');
 });
 
 // Global task action functions

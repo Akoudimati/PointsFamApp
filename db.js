@@ -215,7 +215,23 @@ class Database {
         }
     }
 
-
+    async connect() {
+        try {
+            console.log('🔧 Using Aiven MySQL database');
+            
+            // Test the connection
+            const connection = await this.pool.getConnection();
+            console.log('✅ Connected to MySQL database (mysql-3dfa6410-student-b14a.h.aivencloud.com:15421)');
+            connection.release();
+            
+            // Initialize tables
+            await this.createDirectMessagesTable();
+            
+        } catch (error) {
+            console.error('❌ Database connection failed:', error);
+            throw error;
+        }
+    }
 
     // ==============================================
     // CONNECTION METHODS
@@ -390,13 +406,19 @@ class Database {
     async getFamilyMembers(familyId) {
         try {
             const [rows] = await this.pool.execute(
-                `SELECT * FROM users WHERE family_id = ? ORDER BY role DESC, first_name ASC`,
+                `SELECT id, first_name, last_name, role, username 
+                 FROM users 
+                 WHERE family_id = ? 
+                 ORDER BY role DESC, first_name ASC`,
                 [familyId]
             );
+            
+            console.log(`👨‍👩‍👧‍👦 Found ${rows.length} family members for family ${familyId}`);
             return rows;
-        } catch (err) {
-            console.error('Error getting family members:', err);
-            throw err;
+            
+        } catch (error) {
+            console.error('Error getting family members:', error);
+            throw error;
         }
     }
 
@@ -1021,20 +1043,37 @@ class Database {
 
     async createConversation(conversationData) {
         try {
+            // Validate required fields
+            if (!conversationData.created_by) {
+                throw new Error('created_by is required');
+            }
+            
+            // Ensure all values are properly defined
+            const type = conversationData.type || 'direct';
+            const title = conversationData.title || null;
+            const description = conversationData.description || null;
+            const family_id = conversationData.family_id || null;
+            const created_by = conversationData.created_by;
+            
+            console.log('Creating conversation with values:', {
+                type,
+                title,
+                description,
+                family_id,
+                created_by
+            });
+            
             const [result] = await this.pool.execute(
                 `INSERT INTO conversations (type, title, description, family_id, created_by, created_at)
                  VALUES (?, ?, ?, ?, ?, NOW())`,
-                [
-                    conversationData.type,
-                    conversationData.title,
-                    conversationData.description,
-                    conversationData.family_id,
-                    conversationData.created_by
-                ]
+                [type, title, description, family_id, created_by]
             );
+            
+            console.log('Conversation created successfully with ID:', result.insertId);
             return result.insertId;
         } catch (err) {
             console.error('Error creating conversation:', err);
+            console.error('Conversation data:', conversationData);
             throw err;
         }
     }
@@ -1316,26 +1355,67 @@ class Database {
 
     async searchUsers(query, currentUserId, familyId) {
         try {
-            const [rows] = await this.pool.execute(
-                `SELECT u.id, u.first_name, u.last_name, u.role, f.name as family_name
-                 FROM users u
-                 JOIN families f ON u.family_id = f.id
-                 WHERE u.id != ? AND (
-                     u.family_id = ? OR 
-                     CONCAT(u.first_name, ' ', u.last_name) LIKE ? OR
-                     u.first_name LIKE ? OR
-                     u.last_name LIKE ?
-                 )
-                 ORDER BY 
-                     CASE WHEN u.family_id = ? THEN 0 ELSE 1 END,
-                     u.first_name ASC
-                 LIMIT 20`,
-                [currentUserId, familyId, `%${query}%`, `%${query}%`, `%${query}%`, familyId]
-            );
-            return rows;
-        } catch (err) {
-            console.error('Error searching users:', err);
-            throw err;
+            const searchPattern = `%${query}%`;
+            
+            // Get current user's role to determine search scope
+            const currentUser = await this.getUserById(currentUserId);
+            
+            let sql, params;
+            
+            if (currentUser.role === 'parent') {
+                // Parents can search all users (family members + other families)
+                sql = `
+                    SELECT DISTINCT
+                        u.id,
+                        u.first_name,
+                        u.last_name,
+                        u.role,
+                        f.name as family_name,
+                        u.family_id
+                    FROM users u
+                    JOIN families f ON u.family_id = f.id
+                    WHERE u.id != ?
+                      AND (
+                          LOWER(u.first_name) LIKE LOWER(?) OR
+                          LOWER(u.last_name) LIKE LOWER(?) OR
+                          LOWER(CONCAT(u.first_name, ' ', u.last_name)) LIKE LOWER(?)
+                      )
+                    ORDER BY 
+                        CASE WHEN u.family_id = ? THEN 0 ELSE 1 END,
+                        u.first_name, u.last_name
+                    LIMIT 20
+                `;
+                params = [currentUserId, searchPattern, searchPattern, searchPattern, familyId];
+            } else {
+                // Children can only search within their family
+                sql = `
+                    SELECT DISTINCT
+                        u.id,
+                        u.first_name,
+                        u.last_name,
+                        u.role,
+                        f.name as family_name,
+                        u.family_id
+                    FROM users u
+                    JOIN families f ON u.family_id = f.id
+                    WHERE u.id != ?
+                      AND u.family_id = ?
+                      AND (
+                          LOWER(u.first_name) LIKE LOWER(?) OR
+                          LOWER(u.last_name) LIKE LOWER(?) OR
+                          LOWER(CONCAT(u.first_name, ' ', u.last_name)) LIKE LOWER(?)
+                      )
+                    ORDER BY u.first_name, u.last_name
+                    LIMIT 20
+                `;
+                params = [currentUserId, familyId, searchPattern, searchPattern, searchPattern];
+            }
+            
+            const [users] = await this.pool.query(sql, params);
+            return users;
+        } catch (error) {
+            console.error('Error in searchUsers:', error);
+            throw error;
         }
     }
 
@@ -1513,6 +1593,121 @@ class Database {
             return result[0].count || 0;
         } catch (error) {
             console.error('Error getting unread count:', error);
+            throw error;
+        }
+    }
+
+    async deleteConversation(conversationId) {
+        try {
+            console.log('Deleting conversation:', conversationId);
+            
+            // Delete in order: message_status, messages, participants, then conversation
+            const [statusResult] = await this.pool.execute(
+                'DELETE ms FROM message_status ms JOIN messages m ON ms.message_id = m.id WHERE m.conversation_id = ?', 
+                [conversationId]
+            );
+            console.log('Deleted message statuses:', statusResult.affectedRows);
+            
+            const [messagesResult] = await this.pool.execute(
+                'DELETE FROM messages WHERE conversation_id = ?', 
+                [conversationId]
+            );
+            console.log('Deleted messages:', messagesResult.affectedRows);
+            
+            const [participantsResult] = await this.pool.execute(
+                'DELETE FROM conversation_participants WHERE conversation_id = ?', 
+                [conversationId]
+            );
+            console.log('Deleted participants:', participantsResult.affectedRows);
+            
+            const [conversationResult] = await this.pool.execute(
+                'DELETE FROM conversations WHERE id = ?', 
+                [conversationId]
+            );
+            console.log('Deleted conversation:', conversationResult.affectedRows);
+            
+            return conversationResult.affectedRows > 0;
+        } catch (error) {
+            console.error('Error in deleteConversation:', error);
+            console.error('Error details:', {
+                message: error.message,
+                code: error.code,
+                errno: error.errno,
+                sqlState: error.sqlState,
+                sqlMessage: error.sqlMessage
+            });
+            throw error;
+        }
+    }
+
+    // Simple Direct Messaging Methods
+    async getDirectMessages(userId1, userId2) {
+        try {
+            const [rows] = await this.pool.execute(
+                `SELECT dm.*, 
+                        u1.first_name as sender_first_name,
+                        u1.last_name as sender_last_name,
+                        u2.first_name as recipient_first_name,
+                        u2.last_name as recipient_last_name
+                 FROM direct_messages dm
+                 JOIN users u1 ON dm.sender_id = u1.id
+                 JOIN users u2 ON dm.recipient_id = u2.id
+                 WHERE (dm.sender_id = ? AND dm.recipient_id = ?) 
+                    OR (dm.sender_id = ? AND dm.recipient_id = ?)
+                 ORDER BY dm.created_at ASC
+                 LIMIT 100`,
+                [userId1, userId2, userId2, userId1]
+            );
+            
+            console.log(`📨 Found ${rows.length} direct messages between users ${userId1} and ${userId2}`);
+            return rows;
+            
+        } catch (error) {
+            console.error('Error getting direct messages:', error);
+            throw error;
+        }
+    }
+
+    async saveDirectMessage(messageData) {
+        try {
+            const { sender_id, recipient_id, content } = messageData;
+            
+            const [result] = await this.pool.execute(
+                `INSERT INTO direct_messages (sender_id, recipient_id, content, created_at)
+                 VALUES (?, ?, ?, NOW())`,
+                [sender_id, recipient_id, content]
+            );
+            
+            console.log(`💾 Saved direct message with ID: ${result.insertId}`);
+            return result.insertId;
+            
+        } catch (error) {
+            console.error('Error saving direct message:', error);
+            throw error;
+        }
+    }
+
+    async createDirectMessagesTable() {
+        try {
+            await this.pool.execute(`
+                CREATE TABLE IF NOT EXISTS direct_messages (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    sender_id INT NOT NULL,
+                    recipient_id INT NOT NULL,
+                    content TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    read_at TIMESTAMP NULL,
+                    FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE CASCADE,
+                    FOREIGN KEY (recipient_id) REFERENCES users(id) ON DELETE CASCADE,
+                    INDEX idx_sender_recipient (sender_id, recipient_id),
+                    INDEX idx_created_at (created_at)
+                )
+            `);
+            
+            console.log('✅ Direct messages table created/verified');
+            
+        } catch (error) {
+            console.error('Error creating direct messages table:', error);
             throw error;
         }
     }

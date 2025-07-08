@@ -192,43 +192,29 @@
                 </div>
             </div>
 
-            <!-- Recent Messages -->
+            <!-- Messages Section -->
             <div class="row mb-4">
                 <div class="col-12">
                     <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
+                        <div class="card-header">
                             <h5 class="mb-0">
                                 <i class="fas fa-comments me-2"></i>
                                 Familie Berichten
                             </h5>
-                            <a href="/messages" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-external-link-alt me-1"></i>
+                        </div>
+                        <div class="card-body text-center py-5">
+                            <i class="fas fa-comments fa-3x text-primary mb-3"></i>
+                            <h5 class="text-dark mb-3">Familie Gesprekken</h5>
+                            <p class="text-muted mb-4">Communiceer met je familie via berichten</p>
+                            <a href="/messages" class="btn btn-primary btn-lg">
+                                <i class="fas fa-external-link-alt me-2"></i>
                                 Alle berichten
                             </a>
-                        </div>
-                        <div class="card-body p-0">
-                            <div class="chat-container">
-                                <div id="chat-messages" class="chat-messages">
-                                    <!-- Messages will be loaded here -->
-                                    <div class="loading-messages">
-                                        <div class="loading-spinner"></div>
-                                        <p>Berichten laden...</p>
-                                    </div>
-                                </div>
-                                <div class="chat-input-container">
-                                    <div class="chat-input-wrapper">
-                                        <textarea id="message-input" class="form-control" placeholder="Type een bericht..." rows="1"></textarea>
-                                        <button class="send-button" onclick="messagingManager.sendMessage()">
-                                            <i class="fas fa-paper-plane"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <!-- End Recent Messages -->
+            <!-- End Messages Section -->
 
             <!-- Open Tasks for Assignment -->
             <div class="row mb-4">

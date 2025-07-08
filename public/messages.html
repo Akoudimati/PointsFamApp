@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Berichtencentrum - PointsFam</title>
+    <title>Familie Berichten - PointsFam</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="/css/style.css">
@@ -77,18 +77,12 @@
                 <div class="d-flex justify-content-between align-items-center">
                     <h2 class="text-dark mb-0">
                         <i class="fas fa-comments me-2"></i>
-                        Berichtencentrum
+                        Familie Berichten
                     </h2>
-                    <div class="d-flex gap-2">
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newChatModal">
-                            <i class="fas fa-plus me-1"></i>
-                            Nieuw gesprek
-                        </button>
-                        <button class="btn btn-outline-secondary d-md-none" id="mobile-conversations-toggle">
-                            <i class="fas fa-list me-1"></i>
-                            Gesprekken
-                        </button>
-                    </div>
+                    <button class="btn btn-primary" id="add-chat-btn">
+                        <i class="fas fa-plus me-1"></i>
+                        Add Chat
+                    </button>
                 </div>
             </div>
         </div>
@@ -96,56 +90,41 @@
         <div class="card messaging-container">
             <div class="card-body p-0">
                 <div class="row g-0 h-100">
-                    <!-- Conversations Sidebar -->
-                    <div class="col-md-4 conversations-sidebar" id="conversations-sidebar">
+                    <!-- Family Members Sidebar -->
+                    <div class="col-md-4 family-sidebar">
                         <div class="p-3 border-bottom">
-                            <button class="btn btn-link mobile-back-button p-0 mb-2" id="mobile-back-button">
-                                <i class="fas fa-arrow-left me-2"></i>
-                                Terug naar chat
-                            </button>
-                            <h5 class="mb-0">Gesprekken</h5>
+                            <h5 class="mb-0">Familie Leden</h5>
                         </div>
-                        <div id="conversations-list" class="conversation-loading">
+                        <div id="family-members-list" class="family-loading">
                             <div class="text-center p-4">
                                 <div class="spinner-border text-primary" role="status">
                                     <span class="visually-hidden">Laden...</span>
                                 </div>
-                                <p class="mt-2 text-muted">Gesprekken laden...</p>
+                                <p class="mt-2 text-muted">Familie leden laden...</p>
                             </div>
                         </div>
                     </div>
 
                     <!-- Chat Area -->
-                    <div class="col-md-8 chat-area" id="chat-area">
+                    <div class="col-md-8 chat-area">
                         <div class="no-chat-selected" id="no-chat-selected">
                             <div class="text-center">
-                                <i class="fas fa-comments fa-3x text-muted mb-3"></i>
-                                <h4 class="text-muted">Selecteer een gesprek</h4>
-                                <p class="text-muted">Kies een gesprek uit de lijst om berichten te bekijken</p>
+                                <i class="fas fa-family fa-3x text-muted mb-3"></i>
+                                <h4 class="text-muted">Selecteer een familie lid</h4>
+                                <p class="text-muted">Kies een familie lid om mee te chatten</p>
                             </div>
                         </div>
 
                         <div class="d-none" id="active-chat">
                             <!-- Chat Header -->
                             <div class="chat-header p-3">
-                                <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <div class="chat-avatar me-3" id="chat-avatar">
+                                        <!-- Avatar will be inserted here -->
+                                    </div>
                                     <div>
                                         <h5 class="mb-0" id="chat-title">Gesprek</h5>
-                                        <small class="text-muted" id="chat-participants">Deelnemers</small>
-                                    </div>
-                                    <div class="dropdown">
-                                        <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="dropdown">
-                                            <i class="fas fa-ellipsis-v"></i>
-                                        </button>
-                                        <ul class="dropdown-menu">
-                                            <li><a class="dropdown-item" href="#" id="chat-info">
-                                                <i class="fas fa-info-circle me-2"></i>Gesprek info
-                                            </a></li>
-                                            <li><hr class="dropdown-divider"></li>
-                                            <li><a class="dropdown-item text-danger" href="#" id="leave-chat">
-                                                <i class="fas fa-sign-out-alt me-2"></i>Gesprek verlaten
-                                            </a></li>
-                                        </ul>
+                                        <small class="text-muted" id="chat-status">Online</small>
                                     </div>
                                 </div>
                             </div>
@@ -164,7 +143,7 @@
                                             id="message-input" 
                                             rows="1" 
                                             placeholder="Type een bericht..."
-                                            maxlength="1000"
+                                            maxlength="500"
                                         ></textarea>
                                     </div>
                                     <button type="submit" class="send-button" id="send-button">
@@ -179,51 +158,25 @@
         </div>
     </div>
 
-    <!-- New Chat Modal -->
-    <div class="modal fade" id="newChatModal" tabindex="-1" aria-labelledby="newChatModalLabel" aria-hidden="true">
+    <!-- Add Chat Modal -->
+    <div class="modal fade" id="addChatModal" tabindex="-1" aria-labelledby="addChatModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="newChatModalLabel">Nieuw gesprek starten</h5>
+                    <h5 class="modal-title" id="addChatModalLabel">
+                        <i class="fas fa-plus me-2"></i>
+                        Start New Chat
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="new-chat-form">
-                        <div class="mb-3">
-                            <label for="chat-type" class="form-label">Type gesprek</label>
-                            <select class="form-select" id="chat-type" required>
-                                <option value="direct">Direct bericht</option>
-                                <option value="group">Groepsgesprek</option>
-                                <option value="family">Familiechat</option>
-                            </select>
-                        </div>
-                        
-                        <div class="mb-3" id="chat-title-group">
-                            <label for="new-chat-title" class="form-label">Gesprek titel</label>
-                            <input type="text" class="form-control" id="new-chat-title" placeholder="Geef het gesprek een naam">
-                        </div>
-                        
-                        <div class="mb-3" id="user-search-group">
-                            <label for="user-search" class="form-label">Zoek gebruikers</label>
-                            <div class="position-relative">
-                                <input type="text" class="form-control" id="user-search" placeholder="Zoek naar gebruikers...">
-                                <div class="user-search-dropdown d-none" id="user-search-dropdown">
-                                    <!-- Search results will appear here -->
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3" id="selected-users-group">
-                            <label class="form-label">Geselecteerde gebruikers</label>
-                            <div id="selected-users" class="d-flex flex-wrap gap-2">
-                                <!-- Selected users will appear here -->
-                            </div>
-                        </div>
-                    </form>
+                    <p class="text-muted mb-3">Select a family member to start chatting with:</p>
+                    <div id="modal-family-members" class="list-group">
+                        <!-- Family members will be loaded here -->
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuleren</button>
-                    <button type="submit" form="new-chat-form" class="btn btn-primary">Gesprek starten</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 </div>
             </div>
         </div>
@@ -231,6 +184,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/js/theme-switcher.js"></script>
-    <script src="/js/messages.js"></script>
+    <script src="/js/simple-messages.js"></script>
 </body>
 </html> 

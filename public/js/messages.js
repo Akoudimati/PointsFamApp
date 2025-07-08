@@ -4,6 +4,7 @@ class MessagingManager {
     constructor() {
         this.currentConversationId = null;
         this.currentUser = null;
+        this.currentUserId = null;
         this.conversations = [];
         this.familyMembers = [];
         this.familyName = '';
@@ -15,15 +16,41 @@ class MessagingManager {
         this.isDashboard = window.location.pathname === '/dashboard.html' || window.location.pathname === '/dashboard';
         this.isLoadingMessages = false;
         this.messageCache = new Map(); // Cache for messages
+        this.replyToMessageId = null;
+        this.pollingInterval = null;
     }
 
     async init() {
-        await this.checkAuthentication();
-        if (!this.isDashboard) {
-            await this.loadConversations();
+        try {
+            console.log('Initializing messaging manager...');
+            
+            // Get current user info
+            const userResponse = await fetch('/api/user', {
+                credentials: 'include'
+            });
+            
+            if (!userResponse.ok) {
+                throw new Error('Failed to get user info');
+            }
+            
+            const userData = await userResponse.json();
+            this.currentUser = userData.user;
+            this.currentUserId = userData.user.id;
+            
+            console.log('Current user:', this.currentUser);
+            
+            // Set up event listeners
             this.setupEventListeners();
+            
+            // Only load conversations if we're on the messages page
+            if (window.location.pathname.includes('messages')) {
+                await this.loadConversations();
+            }
+            
+        } catch (error) {
+            console.error('Error initializing messaging manager:', error);
+            throw error;
         }
-        // Don't start polling on init - only when conversation is selected
     }
 
     async checkAuthentication() {
@@ -58,6 +85,11 @@ class MessagingManager {
         try {
             // Show loading state
             const conversationsList = document.getElementById('conversations-list');
+            if (!conversationsList) {
+                console.error('conversations-list element not found');
+                return [];
+            }
+
             conversationsList.innerHTML = `
                 <div class="loading-conversations text-center p-4">
                     <div class="spinner-border text-primary" role="status">
@@ -81,31 +113,37 @@ class MessagingManager {
                 if (response.status === 401) {
                     console.log('Authentication required, redirecting to login');
                     window.location.href = '/login.html';
-                    return;
+                    return [];
                 }
-                const errorData = await response.json();
-                console.error('API Error:', errorData);
-                throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                const errorText = await response.text();
+                console.error('API Error response:', errorText);
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
             
             const data = await response.json();
-            console.log('Family conversations loaded:', data);
+            console.log('Family conversations response:', data);
             
             // Store conversations
             this.conversations = data.conversations || [];
-            console.log('Stored conversations:', this.conversations.length);
+            console.log('Stored conversations:', this.conversations.length, this.conversations);
             
-            // Clear loading state and render conversations
+            // Clear loading state
             conversationsList.innerHTML = '';
+            
+            // Render conversations
             this.renderConversations();
             
             // Load family members after conversations
             await this.loadFamilyMembers();
             
+            // Return conversations for use in dashboard
+            return this.conversations;
+            
         } catch (error) {
             console.error('Error loading conversations:', error);
             this.showNotification(`Er is een fout opgetreden bij het laden van gesprekken: ${error.message}`, 'danger');
             this.renderConversationsError();
+            return [];
         }
     }
 
@@ -149,12 +187,18 @@ class MessagingManager {
 
     renderConversations() {
         const conversationsList = document.getElementById('conversations-list');
+        if (!conversationsList) {
+            console.error('conversations-list element not found in renderConversations');
+            return;
+        }
+        
+        console.log('Rendering conversations:', this.conversations.length);
         
         if (!this.conversations || this.conversations.length === 0) {
             conversationsList.innerHTML = `
                 <div class="no-conversations text-center p-4">
                     <i class="fas fa-comments fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">Geen familie gesprekken</h5>
+                    <h5 class="text-muted">Geen gesprekken</h5>
                     <p class="text-muted">Start een gesprek om te beginnen</p>
                     <button class="btn btn-primary mt-2" data-bs-toggle="modal" data-bs-target="#newChatModal">
                         <i class="fas fa-plus me-1"></i>
@@ -165,30 +209,42 @@ class MessagingManager {
             return;
         }
 
+        // Create conversation items with better structure
         const conversationsHTML = this.conversations.map(conversation => {
+            const conversationId = conversation.id;
             const title = conversation.title || this.getConversationTitle(conversation);
             const lastMessage = conversation.last_message_content || 'Nog geen berichten';
             const timeAgo = this.formatTimeAgo(conversation.last_message_at || conversation.created_at);
             const unreadCount = conversation.unread_count || 0;
             const typeBadge = this.getConversationTypeBadge(conversation.type);
             
+            // Get participants for display
+            const participants = this.getConversationParticipants(conversation);
+            const participantText = participants.length > 0 ? participants.join(', ') : 'Geen deelnemers';
+            
             return `
-                <div class="conversation-item p-3 border-bottom" data-conversation-id="${conversation.id}">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div class="flex-grow-1">
-                            <div class="d-flex align-items-center gap-2 mb-1">
-                                <h6 class="mb-0">${this.escapeHtml(title)}</h6>
-                                ${typeBadge}
-                            </div>
-                            <div class="conversation-last-message text-muted">
-                                ${this.escapeHtml(lastMessage)}
+                <div class="conversation-item" 
+                     data-conversation-id="${conversationId}" 
+                     onclick="messagingManager.selectConversation('${conversationId}')">
+                    <div class="d-flex align-items-start">
+                        <div class="conversation-avatar me-3">
+                            <div class="avatar-circle" style="background-color: ${this.getAvatarColor(title)}">
+                                ${this.getConversationIcon(conversation.type)}
                             </div>
                         </div>
-                        <div class="text-end">
-                            <div class="conversation-time text-muted small">${timeAgo}</div>
-                            ${unreadCount > 0 ? `
-                                <span class="badge bg-primary rounded-pill">${unreadCount}</span>
-                            ` : ''}
+                        <div class="conversation-details flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <h6 class="conversation-title mb-0">${this.escapeHtml(title)}</h6>
+                                <small class="conversation-time text-muted">${timeAgo}</small>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="conversation-type-badge ${conversation.type}-badge">${typeBadge}</span>
+                                ${unreadCount > 0 ? `<span class="badge bg-primary rounded-pill">${unreadCount}</span>` : ''}
+                            </div>
+                            <p class="conversation-preview text-muted mb-1">${this.escapeHtml(lastMessage)}</p>
+                            <small class="conversation-participants text-muted">
+                                <i class="fas fa-users me-1"></i>${this.escapeHtml(participantText)}
+                            </small>
                         </div>
                     </div>
                 </div>
@@ -196,6 +252,30 @@ class MessagingManager {
         }).join('');
 
         conversationsList.innerHTML = conversationsHTML;
+        
+        console.log('✅ Conversations rendered successfully');
+    }
+
+    getConversationParticipants(conversation) {
+        // Return participant names based on conversation type
+        if (conversation.type === 'family') {
+            return this.familyMembers ? this.familyMembers.map(m => m.first_name) : ['Familie'];
+        } else if (conversation.type === 'direct') {
+            // For direct messages, show the other person's name
+            return [conversation.title || 'Direct gesprek'];
+        } else {
+            // For group chats, show participant count or names
+            return [conversation.title || 'Groepsgesprek'];
+        }
+    }
+
+    getConversationIcon(type) {
+        switch (type) {
+            case 'family': return '<i class="fas fa-home"></i>';
+            case 'direct': return '<i class="fas fa-user"></i>';
+            case 'group': return '<i class="fas fa-users"></i>';
+            default: return '<i class="fas fa-comments"></i>';
+        }
     }
 
     renderFamilyMembers() {
@@ -287,143 +367,214 @@ class MessagingManager {
     }
 
     setupEventListeners() {
-        // Conversation selection
-        document.getElementById('conversations-list').addEventListener('click', (e) => {
-            const conversationItem = e.target.closest('.conversation-item');
-            if (conversationItem) {
-                const conversationId = conversationItem.dataset.conversationId;
-                this.selectConversation(conversationId);
-            }
-        });
-
         // Message form submission
-        document.getElementById('message-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.sendMessage();
-        });
+        const messageForm = document.getElementById('message-form');
+        if (messageForm) {
+            messageForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.sendMessage();
+            });
+        }
 
         // Message input auto-resize
         const messageInput = document.getElementById('message-input');
-        messageInput.addEventListener('input', () => {
-            messageInput.style.height = 'auto';
-            messageInput.style.height = Math.min(messageInput.scrollHeight, 120) + 'px';
-        });
+        if (messageInput) {
+            messageInput.addEventListener('input', (e) => {
+                e.target.style.height = 'auto';
+                e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
+            });
 
-        // Enter key to send message (Shift+Enter for new line)
-        messageInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                this.sendMessage();
-            }
-        });
+            messageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    this.sendMessage();
+                }
+            });
+        }
+
+        // Conversation selection - using event delegation
+        const conversationsList = document.getElementById('conversations-list');
+        if (conversationsList) {
+            conversationsList.addEventListener('click', (e) => {
+                const conversationItem = e.target.closest('.conversation-item');
+                if (conversationItem) {
+                    const conversationId = conversationItem.dataset.conversationId;
+                    console.log('🎯 Conversation clicked:', conversationId);
+                    if (conversationId) {
+                        this.selectConversation(conversationId);
+                    }
+                }
+            });
+        }
 
         // New chat form
-        document.getElementById('new-chat-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.createNewChat();
-        });
+        const newChatForm = document.getElementById('new-chat-form');
+        if (newChatForm) {
+            newChatForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.createNewChat();
+            });
+        }
 
         // Chat type selection
-        document.getElementById('chat-type').addEventListener('change', (e) => {
-            this.updateNewChatForm(e.target.value);
-        });
+        const chatTypeSelect = document.getElementById('chat-type');
+        if (chatTypeSelect) {
+            chatTypeSelect.addEventListener('change', (e) => {
+                this.updateNewChatForm(e.target.value);
+            });
+        }
 
         // User search
-        document.getElementById('user-search').addEventListener('input', (e) => {
-            this.handleUserSearch(e.target.value);
-        });
+        const userSearchInput = document.getElementById('user-search');
+        if (userSearchInput) {
+            let searchTimeout;
+            userSearchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    this.handleUserSearch(e.target.value);
+                }, 300);
+            });
+        }
 
-        // Mobile navigation
-        document.getElementById('mobile-conversations-toggle').addEventListener('click', () => {
-            document.getElementById('conversations-sidebar').classList.add('show');
-        });
+        // Delete conversation
+        const deleteConversationBtn = document.getElementById('delete-conversation');
+        if (deleteConversationBtn) {
+            deleteConversationBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await this.deleteConversation();
+            });
+        }
 
-        document.getElementById('mobile-back-button').addEventListener('click', () => {
-            document.getElementById('conversations-sidebar').classList.remove('show');
-        });
+        // Logout
+        const logoutBtn = document.getElementById('logout-btn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await this.logout();
+            });
+        }
 
-        // Back button functionality
-        document.querySelector('.mobile-back-button').addEventListener('click', (e) => {
-            e.preventDefault();
-            this.goBackToConversations();
-        });
+        // Mobile responsive
+        const mobileToggle = document.getElementById('mobile-conversations-toggle');
+        if (mobileToggle) {
+            mobileToggle.addEventListener('click', () => {
+                this.toggleMobileConversations();
+            });
+        }
 
-        // Logout functionality
-        document.getElementById('logout-btn').addEventListener('click', async () => {
-            await this.logout();
-        });
+        const mobileBack = document.getElementById('mobile-back-button');
+        if (mobileBack) {
+            mobileBack.addEventListener('click', () => {
+                this.goBackToConversations();
+            });
+        }
     }
 
     async selectConversation(conversationId) {
         try {
             console.log('Selecting conversation:', conversationId);
             
-            // Validate conversationId
             if (!conversationId) {
                 console.error('Invalid conversation ID');
-                this.showNotification('Geen geldig gesprek geselecteerd', 'danger');
                 return;
             }
-
-            // Stop any existing polling
-            this.stopMessagePolling();
-
-            // Fetch conversation details
-            const response = await fetch(`/api/conversations/${conversationId}`, {
-                credentials: 'include',
-                headers: {
-                    'Accept': 'application/json'
-                }
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error('Conversation fetch error:', errorData);
-                this.showNotification(`Fout bij laden gesprek: ${errorData.error || 'Onbekende fout'}`, 'danger');
-                return;
-            }
-
-            const { conversation, participants } = await response.json();
-            console.log('Conversation details:', conversation);
-            console.log('Conversation participants:', participants);
-
-            // Set current conversation
+            
+            // Convert to string to ensure consistency
+            conversationId = String(conversationId);
             this.currentConversationId = conversationId;
+            
+            // Stop any existing polling
+            this.stopPolling();
 
+            // Get conversation details 
+            const conversation = this.conversations.find(c => String(c.id) === conversationId);
+            if (!conversation) {
+                console.error('Conversation not found:', conversationId);
+                return;
+            }
+
+            console.log('Loading conversation:', conversation);
+
+            // Show loading state
+            const conversationDetail = document.getElementById('conversation-detail');
+            conversationDetail.innerHTML = `
+                <div class="loading-conversation d-flex justify-content-center align-items-center h-100">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary mb-3" role="status"></div>
+                        <p class="text-muted">Gesprek laden...</p>
+                    </div>
+                </div>
+            `;
+
+            // Load participants (from family members)
+            const participants = this.familyMembers || [];
+            
+            // Show the conversation details
+            conversationDetail.classList.remove('d-none');
+            
             // Render chat area
             this.renderChatArea(conversation, participants);
-
-            // Load messages
+            
+            // Load messages with the correct conversation ID
             await this.loadMessages(conversationId);
 
             // Start polling for this conversation
-            this.startMessagePolling();
+            this.startPolling();
 
             // Update UI state
-            const conversationElements = document.querySelectorAll('.conversation-item');
-            conversationElements.forEach(el => {
-                el.classList.remove('active');
-                if (el.dataset.conversationId === conversationId) {
-                    el.classList.add('active');
-                }
-            });
+            this.updateSelectedConversation(conversationId);
 
         } catch (error) {
             console.error('Error selecting conversation:', error);
-            this.showNotification(`Fout bij selecteren gesprek: ${error.message}`, 'danger');
+            this.showNotification('Er is een fout opgetreden bij het laden van het gesprek.', 'danger');
         }
     }
 
     renderChatArea(conversation, participants) {
-        const title = conversation.title || this.getConversationTitle(conversation);
-        const participantNames = participants.map(p => `${p.first_name} ${p.last_name}`).join(', ');
+        console.log('🎨 Rendering chat area for:', conversation.title);
         
-        document.getElementById('chat-title').textContent = title;
-        document.getElementById('chat-participants').textContent = participantNames;
+        const chatArea = document.getElementById('active-chat');
+        const noChatSelected = document.getElementById('no-chat-selected');
         
-        // Show chat area
-        document.getElementById('no-chat-selected').classList.add('d-none');
-        document.getElementById('active-chat').classList.remove('d-none');
+        if (!chatArea || !noChatSelected) {
+            console.error('Chat area elements not found');
+            return;
+        }
+
+        // Hide "no chat selected" and show active chat
+        noChatSelected.classList.add('d-none');
+        chatArea.classList.remove('d-none');
+
+        // Update chat header
+        const chatTitle = document.getElementById('chat-title');
+        const chatParticipants = document.getElementById('chat-participants');
+        
+        if (chatTitle) {
+            chatTitle.innerHTML = `
+                <i class="${this.getConversationIcon(conversation.type).replace('<i class="', '').replace('"></i>', '')} me-2"></i>
+                ${this.escapeHtml(conversation.title || 'Gesprek')}
+            `;
+        }
+        
+        if (chatParticipants) {
+            const participantNames = this.getConversationParticipants(conversation);
+            chatParticipants.textContent = participantNames.join(', ');
+        }
+
+        // Clear messages container
+        const messagesContainer = document.getElementById('chat-messages');
+        if (messagesContainer) {
+            messagesContainer.innerHTML = `
+                <div class="loading-messages text-center p-4">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status">
+                        <span class="visually-hidden">Berichten laden...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Berichten laden...</p>
+                </div>
+            `;
+        }
+
+        console.log('✅ Chat area rendered successfully');
     }
 
     async loadMessages(conversationId) {
@@ -435,36 +586,22 @@ class MessagingManager {
 
             // Don't reload if we're already loading messages for this conversation
             if (this.isLoadingMessages) {
-                console.log('Already loading messages, skipping...');
                 return;
             }
 
             this.isLoadingMessages = true;
+            console.log('Loading messages for conversation:', conversationId);
 
-            // Check cache first
-            const cacheKey = `messages_${conversationId}`;
-            const cachedData = this.messageCache.get(cacheKey);
-            const now = Date.now();
-
-            // Use cache if available and less than 30 seconds old
-            if (cachedData && (now - cachedData.timestamp) < 30000) {
-                console.log('Using cached messages');
-                this.renderMessages(cachedData.messages);
-                this.isLoadingMessages = false;
-                return;
-            }
-
-            // Show loading state only on first load
-            if (!this.lastMessageCount) {
-                const chatMessages = document.getElementById('chat-messages');
-                if (chatMessages) {
-                    chatMessages.innerHTML = `
-                        <div class="loading-messages">
-                            <div class="loading-spinner"></div>
-                            <p>Berichten laden...</p>
+            // Show minimal loading state
+            const chatMessages = document.getElementById('chat-messages');
+            if (chatMessages && chatMessages.children.length === 0) {
+                chatMessages.innerHTML = `
+                    <div class="loading-messages text-center p-2">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Laden...</span>
                         </div>
-                    `;
-                }
+                    </div>
+                `;
             }
 
             const response = await fetch(`/api/conversations/${conversationId}/messages`, {
@@ -477,33 +614,31 @@ class MessagingManager {
 
             const data = await response.json();
             
-            // Update cache
-            this.messageCache.set(cacheKey, {
-                messages: data.messages,
-                timestamp: now
-            });
-
-            // Update tracking variables
-            this.lastMessageCount = data.messages.length;
-            this.lastMessageTimestamp = data.messages.length > 0 ? 
-                data.messages[data.messages.length - 1].created_at : null;
-
-            // Only update UI if messages have changed
-            const messagesContainer = document.getElementById('chat-messages');
-            if (messagesContainer) {
-                const wasAtBottom = this.isScrolledToBottom(messagesContainer);
-                this.renderMessages(data.messages);
-                if (wasAtBottom) {
-                    this.scrollToBottom(messagesContainer);
-                }
-            }
-
-            // Mark messages as read
-            await this.markVisibleMessagesAsRead();
-
+            // Store messages for this conversation
+            this.currentMessages = data.messages || [];
+            
+            // Render messages immediately (much faster now!)
+            this.renderMessages(this.currentMessages);
+            
+            console.log(`✅ Loaded ${this.currentMessages.length} messages instantly!`);
+            
         } catch (error) {
             console.error('Error loading messages:', error);
-            this.showNotification('Er is een fout opgetreden bij het laden van berichten.', 'danger');
+            
+            const chatMessages = document.getElementById('chat-messages');
+            if (chatMessages) {
+                chatMessages.innerHTML = `
+                    <div class="error-state text-center p-4">
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            <p class="mb-2">Kon berichten niet laden</p>
+                            <button class="btn btn-sm btn-outline-primary" onclick="messagingManager.loadMessages('${conversationId}')">
+                                <i class="bi bi-arrow-clockwise"></i> Opnieuw proberen
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
         } finally {
             this.isLoadingMessages = false;
         }
@@ -514,146 +649,61 @@ class MessagingManager {
     }
 
     renderMessages(messages) {
-        const chatMessages = document.getElementById('chat-messages');
-        if (!chatMessages) return;
+        // Try to find the messages container
+        let messagesContainer = document.getElementById('chat-messages');
+        
+        if (!messagesContainer) {
+            console.error('Messages container not found');
+            return;
+        }
+
+        console.log('Rendering messages:', messages.length, 'Current user ID:', this.currentUserId);
 
         if (!messages || messages.length === 0) {
-            chatMessages.innerHTML = `
+            messagesContainer.innerHTML = `
                 <div class="no-messages text-center p-4">
-                    <i class="fas fa-comments fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">Geen berichten</h5>
-                    <p class="text-muted">Begin een gesprek door een bericht te sturen</p>
+                    <div class="mb-3">
+                        <i class="bi bi-chat-dots" style="font-size: 3rem; color: #6c757d;"></i>
+                    </div>
+                    <h5 class="text-muted mb-2">Nog geen berichten</h5>
+                    <p class="text-muted">Start het gesprek door een bericht te sturen!</p>
                 </div>
             `;
             return;
         }
 
-        // Group messages by date and sender
-        const messagesByDate = {};
-        let currentDate = '';
-        
-        messages.forEach(message => {
-            const messageDate = new Date(message.created_at).toLocaleDateString('nl-NL');
-            
-            if (!messagesByDate[messageDate]) {
-                messagesByDate[messageDate] = [];
-            }
-            
-            messagesByDate[messageDate].push(message);
-        });
-
+        // Simple message rendering without complex grouping
         let messagesHTML = '';
         
-        // Render messages grouped by date
-        Object.entries(messagesByDate).forEach(([date, dateMessages]) => {
-            // Add date separator
+        messages.forEach(message => {
+            const isCurrentUser = message.sender_id === this.currentUserId;
+            const messageTime = this.formatTime(message.created_at);
+            
             messagesHTML += `
-                <div class="message-date-separator">
-                    <span>${date}</span>
+                <div class="message-wrapper mb-3 ${isCurrentUser ? 'text-end' : 'text-start'}">
+                    <div class="message-bubble ${isCurrentUser ? 'message-sent' : 'message-received'} d-inline-block">
+                        <div class="message-content">${this.escapeHtml(message.content)}</div>
+                        <div class="message-time">${messageTime}</div>
+                        ${!isCurrentUser ? `<div class="message-sender">${this.escapeHtml(message.sender_first_name)}</div>` : ''}
+                    </div>
                 </div>
             `;
-
-            // Group messages by sender
-            let currentSender = null;
-            let messageGroup = [];
-
-            dateMessages.forEach((message, index) => {
-                if (currentSender !== message.sender_id) {
-                    // Render previous group if exists
-                    if (messageGroup.length > 0) {
-                        messagesHTML += this.renderMessageGroup(messageGroup);
-                    }
-                    
-                    // Start new group
-                    messageGroup = [message];
-                    currentSender = message.sender_id;
-                } else {
-                    // Add to current group
-                    messageGroup.push(message);
-                }
-
-                // Render last group
-                if (index === dateMessages.length - 1) {
-                    messagesHTML += this.renderMessageGroup(messageGroup);
-                }
-            });
         });
 
-        chatMessages.innerHTML = messagesHTML;
+        messagesContainer.innerHTML = messagesHTML;
+        
+        // Auto-scroll to bottom
+        setTimeout(() => {
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }, 100);
     }
 
-    renderMessageGroup(messages) {
-        if (!messages || messages.length === 0) return '';
-
-        const isCurrentUser = messages[0].sender_id === this.currentUser.id;
-        const messageAlignment = isCurrentUser ? 'justify-content-end' : 'justify-content-start';
-        const messageStyle = isCurrentUser ? 'sent' : 'received';
-        
-        return `
-            <div class="message-group ${messageAlignment}">
-                <div class="message-bubble-group">
-                    ${messages.map(message => `
-                        <div class="message-bubble ${messageStyle}">
-                            ${this.formatMessageContent(message.content)}
-                            <div class="message-meta">
-                                <span class="message-time">${this.formatMessageTime(message.created_at)}</span>
-                                ${message.is_edited ? '<span class="message-edited">(bewerkt)</span>' : ''}
-                            </div>
-                        </div>
-                    `).join('')}
-                </div>
-                ${!isCurrentUser ? `
-                    <div class="message-sender">
-                        ${messages[0].sender_first_name}
-                    </div>
-                ` : ''}
-            </div>
-        `;
-    }
-
-    groupMessages(messages) {
-        const groups = [];
-        let currentGroup = null;
-        
-        messages.forEach(message => {
-            const shouldStartNewGroup = !currentGroup || 
-                currentGroup.senderId !== message.sender_id ||
-                this.shouldBreakMessageGroup(currentGroup.lastMessageTime, message.created_at);
-            
-            if (shouldStartNewGroup) {
-                currentGroup = {
-                    senderId: message.sender_id,
-                    senderName: `${message.sender_first_name} ${message.sender_last_name}`,
-                    lastMessageTime: message.created_at,
-                    messages: []
-                };
-                groups.push(currentGroup);
-            }
-            
-            currentGroup.messages.push(message);
-            currentGroup.lastMessageTime = message.created_at;
+    formatTime(timestamp) {
+        const date = new Date(timestamp);
+        return date.toLocaleTimeString('nl-NL', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
         });
-        
-        return groups;
-    }
-
-    shouldBreakMessageGroup(lastTime, currentTime) {
-        const timeDiff = new Date(currentTime) - new Date(lastTime);
-        return timeDiff > 5 * 60 * 1000; // 5 minutes
-    }
-
-    formatMessageContent(content) {
-        // Basic formatting: convert URLs to links, newlines to <br>
-        let formatted = this.escapeHtml(content);
-        
-        // Convert URLs to clickable links
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
-        formatted = formatted.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
-        
-        // Convert newlines to <br>
-        formatted = formatted.replace(/\n/g, '<br>');
-        
-        return formatted;
     }
 
     scrollToBottom(container, smooth = true) {
@@ -712,298 +762,433 @@ class MessagingManager {
     }
 
     async sendMessage() {
+        const messageInput = document.getElementById('message-input');
+        const content = messageInput.value.trim();
+        
+        if (!content || !this.currentConversationId) {
+            return;
+        }
+
+        // Clear input immediately for better UX
+        messageInput.value = '';
+        
         try {
-            const messageInput = document.getElementById('message-input');
-            const content = messageInput.value.trim();
-            
-            if (!content || !this.currentConversationId) {
-                return;
-            }
-            
-            console.log('Sending message to conversation:', this.currentConversationId);
-            console.log('Message content:', content);
-            
+            // Create optimistic message for instant display
+            const optimisticMessage = {
+                id: 'temp_' + Date.now(),
+                sender_id: this.currentUser.id,
+                sender_name: `${this.currentUser.first_name} ${this.currentUser.last_name}`,
+                sender_first_name: this.currentUser.first_name,
+                content: content,
+                created_at: new Date().toISOString(),
+                sending: true // Flag to show sending state
+            };
+
+            // Add to current messages and render immediately
+            this.currentMessages.push(optimisticMessage);
+            this.renderMessages(this.currentMessages);
+            this.scrollToBottom();
+
+            // Send to server
             const response = await fetch(`/api/conversations/${this.currentConversationId}/messages`, {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Content-Type': 'application/json'
                 },
                 credentials: 'include',
-                body: JSON.stringify({ 
-                    content,
-                    conversation_id: this.currentConversationId
-                })
+                body: JSON.stringify({ content })
             });
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            
+
             const data = await response.json();
-            console.log('Message sent response:', data);
             
-            if (!data.success) {
-                throw new Error(data.error || 'Failed to send message');
+            if (data.success) {
+                // Replace optimistic message with real message
+                const index = this.currentMessages.findIndex(m => m.id === optimisticMessage.id);
+                if (index !== -1) {
+                    this.currentMessages[index] = data.message;
+                    this.renderMessages(this.currentMessages);
+                }
+                
+                console.log('✅ Message sent instantly!');
+            } else {
+                throw new Error(data.error || 'Unknown error');
             }
-            
-            messageInput.value = '';
-            messageInput.style.height = 'auto';
-            await this.loadMessages(this.currentConversationId);
             
         } catch (error) {
             console.error('Error sending message:', error);
-            this.showNotification('Er is een fout opgetreden bij het verzenden van je bericht.', 'danger');
+            
+            // Remove failed optimistic message
+            this.currentMessages = this.currentMessages.filter(m => m.id !== optimisticMessage.id);
+            this.renderMessages(this.currentMessages);
+            
+            // Restore message to input
+            messageInput.value = content;
+            
+            this.showNotification('Kon bericht niet verzenden. Probeer opnieuw.', 'danger');
         }
     }
 
     updateNewChatForm(chatType) {
+        console.log('🔄 Updating new chat form for type:', chatType);
+        
         const titleGroup = document.getElementById('chat-title-group');
         const userSearchGroup = document.getElementById('user-search-group');
         const selectedUsersGroup = document.getElementById('selected-users-group');
+        const userSearchInput = document.getElementById('user-search');
+        const newChatTitle = document.getElementById('new-chat-title');
         
-        if (chatType === 'family') {
-            titleGroup.classList.add('d-none');
-            userSearchGroup.classList.add('d-none');
-            selectedUsersGroup.classList.add('d-none');
-        } else {
-            titleGroup.classList.remove('d-none');
-            userSearchGroup.classList.remove('d-none');
-            selectedUsersGroup.classList.remove('d-none');
+        // Reset form
+        if (userSearchInput) userSearchInput.value = '';
+        if (newChatTitle) newChatTitle.value = '';
+        this.selectedUsers = [];
+        this.renderSelectedUsers();
+        
+        switch (chatType) {
+            case 'direct':
+                // Personal chat - show user search, hide title
+                if (titleGroup) titleGroup.style.display = 'none';
+                if (userSearchGroup) userSearchGroup.style.display = 'block';
+                if (selectedUsersGroup) selectedUsersGroup.style.display = 'block';
+                if (userSearchInput) {
+                    userSearchInput.placeholder = 'Zoek een familielid om mee te chatten...';
+                }
+                break;
+                
+            case 'group':
+                // Group chat - show both title and user search
+                if (titleGroup) titleGroup.style.display = 'block';
+                if (userSearchGroup) userSearchGroup.style.display = 'block';
+                if (selectedUsersGroup) selectedUsersGroup.style.display = 'block';
+                if (userSearchInput) {
+                    userSearchInput.placeholder = 'Zoek familieleden voor de groep...';
+                }
+                if (newChatTitle) {
+                    newChatTitle.placeholder = 'Bijv. "Huiswerk Groep"';
+                }
+                break;
+                
+            case 'family':
+                // Family chat - only show title, no user search needed
+                if (titleGroup) titleGroup.style.display = 'block';
+                if (userSearchGroup) userSearchGroup.style.display = 'none';
+                if (selectedUsersGroup) selectedUsersGroup.style.display = 'none';
+                if (newChatTitle) {
+                    newChatTitle.placeholder = 'Bijv. "Familie Planning"';
+                }
+                break;
         }
+        
+        console.log('✅ Chat form updated for type:', chatType);
     }
 
     async handleUserSearch(query) {
-        if (this.searchTimeout) {
-            clearTimeout(this.searchTimeout);
+        if (!query || query.length < 2) {
+            this.hideUserSearchResults();
+            return;
         }
         
-        this.searchTimeout = setTimeout(async () => {
-            await this.searchUsers(query);
-        }, 300);
+        console.log('🔍 Searching for users:', query);
+        
+        try {
+            const users = await this.searchUsers(query);
+            this.renderUserSearchResults(users);
+        } catch (error) {
+            console.error('Error searching users:', error);
+            this.hideUserSearchResults();
+        }
     }
 
     async searchUsers(query) {
-        if (!query || query.length < 2) {
-            document.getElementById('user-search-dropdown').classList.add('d-none');
-            return;
-        }
-
         try {
             const response = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`, {
                 credentials: 'include'
             });
-
+            
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-
-            const data = await response.json();
-            this.renderUserSearchResults(data.users);
             
+            const data = await response.json();
+            console.log('👥 Found users:', data.users.length);
+            return data.users || [];
         } catch (error) {
             console.error('Error searching users:', error);
+            return [];
         }
     }
 
     renderUserSearchResults(users) {
         const dropdown = document.getElementById('user-search-dropdown');
+        if (!dropdown) return;
         
         if (!users || users.length === 0) {
-            dropdown.innerHTML = '<div class="user-search-item text-muted">Geen gebruikers gevonden</div>';
+            dropdown.innerHTML = `
+                <div class="p-3 text-muted text-center">
+                    <i class="fas fa-search me-2"></i>
+                    Geen gebruikers gevonden
+                </div>
+            `;
             dropdown.classList.remove('d-none');
             return;
         }
-
-        const usersHTML = users.map(user => {
-            const isSelected = this.selectedUsers.some(selected => selected.id === user.id);
-            const familyBadge = user.family_name !== this.currentUser.familyName ? 
-                `<span class="badge bg-secondary ms-2">${user.family_name}</span>` : '';
+        
+        const resultsHTML = users.map(user => {
+            const isSelected = this.selectedUsers.some(u => u.id === user.id);
+            const isCurrentUser = user.id === this.currentUserId;
+            
+            if (isCurrentUser) return ''; // Don't show current user
             
             return `
-                <div class="user-search-item ${isSelected ? 'bg-light' : ''}" 
+                <div class="user-search-result ${isSelected ? 'selected' : ''}" 
                      data-user-id="${user.id}" 
-                     data-user-name="${user.first_name} ${user.last_name}">
-                    ${user.first_name} ${user.last_name} 
-                    <span class="badge bg-primary">${user.role}</span>
-                    ${familyBadge}
+                     onclick="messagingManager.toggleUserSelection(${user.id}, '${this.escapeHtml(user.first_name)}', '${this.escapeHtml(user.last_name)}', '${user.role}')">
+                    <div class="d-flex align-items-center">
+                        <div class="user-avatar me-2" style="background-color: ${this.getAvatarColor(user.first_name)}">
+                            ${user.first_name.charAt(0).toUpperCase()}
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="user-name">${this.escapeHtml(user.first_name)} ${this.escapeHtml(user.last_name)}</div>
+                            <div class="user-role">${user.role === 'parent' ? 'Ouder' : 'Kind'}</div>
+                        </div>
+                        ${isSelected ? '<i class="fas fa-check text-success"></i>' : ''}
+                    </div>
                 </div>
             `;
-        }).join('');
-
-        dropdown.innerHTML = usersHTML;
-        dropdown.classList.remove('d-none');
+        }).filter(html => html).join('');
         
-        // Add click handlers
-        dropdown.querySelectorAll('.user-search-item').forEach(item => {
-            item.addEventListener('click', () => {
-                const userId = parseInt(item.dataset.userId);
-                const userName = item.dataset.userName;
-                
-                if (!this.selectedUsers.some(u => u.id === userId)) {
-                    this.selectedUsers.push({ id: userId, name: userName });
-                    this.renderSelectedUsers();
-                }
-                
-                document.getElementById('user-search').value = '';
-                dropdown.classList.add('d-none');
+        dropdown.innerHTML = resultsHTML;
+        dropdown.classList.remove('d-none');
+    }
+
+    toggleUserSelection(userId, firstName, lastName, role) {
+        const existingIndex = this.selectedUsers.findIndex(u => u.id === userId);
+        
+        if (existingIndex !== -1) {
+            // Remove user
+            this.selectedUsers.splice(existingIndex, 1);
+            console.log('➖ Removed user:', firstName);
+        } else {
+            // Add user
+            this.selectedUsers.push({
+                id: userId,
+                first_name: firstName,
+                last_name: lastName,
+                role: role
             });
-        });
+            console.log('➕ Added user:', firstName);
+        }
+        
+        this.renderSelectedUsers();
+        this.renderUserSearchResults(this.lastSearchResults || []);
     }
 
     renderSelectedUsers() {
-        const selectedUsersContainer = document.getElementById('selected-users');
+        const container = document.getElementById('selected-users');
+        if (!container) return;
         
-        if (this.selectedUsers.length === 0) {
-            selectedUsersContainer.innerHTML = '<p class="text-muted">Geen gebruikers geselecteerd</p>';
+        if (!this.selectedUsers || this.selectedUsers.length === 0) {
+            container.innerHTML = `
+                <div class="text-muted text-center p-3">
+                    <i class="fas fa-users me-2"></i>
+                    Geen gebruikers geselecteerd
+                </div>
+            `;
             return;
         }
-
-        const usersHTML = this.selectedUsers.map(user => `
-            <span class="badge bg-primary d-flex align-items-center">
-                ${user.name}
-                <button type="button" class="btn-close btn-close-white ms-2" 
-                        data-user-id="${user.id}" 
-                        aria-label="Verwijder"></button>
-            </span>
-        `).join('');
-
-        selectedUsersContainer.innerHTML = usersHTML;
         
-        // Add remove handlers
-        selectedUsersContainer.querySelectorAll('.btn-close').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const userId = parseInt(btn.dataset.userId);
-                this.selectedUsers = this.selectedUsers.filter(u => u.id !== userId);
-                this.renderSelectedUsers();
-            });
-        });
+        const usersHTML = this.selectedUsers.map(user => `
+            <div class="selected-user-tag">
+                <div class="d-flex align-items-center">
+                    <div class="user-avatar-small me-2" style="background-color: ${this.getAvatarColor(user.first_name)}">
+                        ${user.first_name.charAt(0).toUpperCase()}
+                    </div>
+                    <span>${this.escapeHtml(user.first_name)} ${this.escapeHtml(user.last_name)}</span>
+                    <button type="button" class="btn-close btn-close-sm ms-2" 
+                            onclick="messagingManager.toggleUserSelection(${user.id}, '${this.escapeHtml(user.first_name)}', '${this.escapeHtml(user.last_name)}', '${user.role}')">
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        
+        container.innerHTML = usersHTML;
+    }
+
+    hideUserSearchResults() {
+        const dropdown = document.getElementById('user-search-dropdown');
+        if (dropdown) {
+            dropdown.classList.add('d-none');
+        }
     }
 
     async createNewChat() {
         const chatType = document.getElementById('chat-type').value;
         const chatTitle = document.getElementById('new-chat-title').value.trim();
         
+        console.log('🚀 Creating new chat:', { chatType, chatTitle, selectedUsers: this.selectedUsers });
+        
         try {
-            let requestData = {
+            let conversationData = {
                 type: chatType
             };
             
-            if (chatType === 'family') {
-                requestData.title = 'Familie Chat';
-            } else {
-                if (chatType === 'group' && !chatTitle) {
-                    this.showNotification('Geef het groepsgesprek een naam.', 'warning');
-                    return;
-                }
-                
-                if (this.selectedUsers.length === 0) {
-                    this.showNotification('Selecteer minimaal één gebruiker.', 'warning');
-                    return;
-                }
-                
-                requestData.title = chatTitle || null;
-                requestData.participants = this.selectedUsers.map(u => u.id);
+            switch (chatType) {
+                case 'direct':
+                    if (this.selectedUsers.length !== 1) {
+                        throw new Error('Selecteer precies één persoon voor een direct gesprek');
+                    }
+                    conversationData.title = `${this.selectedUsers[0].first_name} ${this.selectedUsers[0].last_name}`;
+                    conversationData.participants = [this.selectedUsers[0].id];
+                    break;
+                    
+                case 'group':
+                    if (!chatTitle) {
+                        throw new Error('Voer een titel in voor het groepsgesprek');
+                    }
+                    if (this.selectedUsers.length < 1) {
+                        throw new Error('Selecteer minimaal één persoon voor een groepsgesprek');
+                    }
+                    conversationData.title = chatTitle;
+                    conversationData.participants = this.selectedUsers.map(u => u.id);
+                    break;
+                    
+                case 'family':
+                    if (!chatTitle) {
+                        throw new Error('Voer een titel in voor het familie gesprek');
+                    }
+                    conversationData.title = chatTitle;
+                    conversationData.is_family_chat = true;
+                    break;
+                    
+                default:
+                    throw new Error('Ongeldig gesprekstype');
             }
+            
+            console.log('📤 Sending conversation data:', conversationData);
             
             const response = await fetch('/api/conversations', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json'
                 },
-                credentials: 'include',
-                body: JSON.stringify(requestData)
+                body: JSON.stringify(conversationData),
+                credentials: 'include'
             });
-
+            
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Fout bij het maken van gesprek');
             }
-
-            const data = await response.json();
+            
+            const result = await response.json();
+            console.log('✅ Conversation created:', result);
             
             // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('newChatModal'));
-            modal.hide();
+            const modal = document.getElementById('newChatModal');
+            const modalInstance = bootstrap.Modal.getInstance(modal);
+            if (modalInstance) {
+                modalInstance.hide();
+            }
             
-            // Reset form
-            this.resetNewChatForm();
-            
-            // Reload conversations
+            // Refresh conversations
             await this.loadConversations();
             
             // Select the new conversation
-            this.selectConversation(data.conversationId);
+            if (result.conversation && result.conversation.id) {
+                this.selectConversation(result.conversation.id);
+            }
             
-            this.showNotification('Gesprek succesvol aangemaakt!', 'success');
+            this.showAlert('success', 'Gesprek succesvol aangemaakt!');
             
         } catch (error) {
-            console.error('Error creating new chat:', error);
-            this.showNotification('Er is een fout opgetreden bij het aanmaken van het gesprek.', 'danger');
+            console.error('❌ Error creating conversation:', error);
+            this.showAlert('danger', error.message || 'Fout bij het maken van gesprek');
         }
     }
 
-    resetNewChatForm() {
-        document.getElementById('new-chat-form').reset();
-        document.getElementById('user-search').value = '';
-        document.getElementById('user-search-dropdown').classList.add('d-none');
-        this.selectedUsers = [];
-        this.renderSelectedUsers();
-        this.updateNewChatForm('direct');
-    }
-
-    startMessagePolling() {
-        // Clear any existing polling
-        this.stopMessagePolling();
+    showAlert(type, message) {
+        const alertContainer = document.getElementById('alert-container');
+        if (!alertContainer) return;
         
-        // Only start polling if we have a conversation selected
-        if (!this.currentConversationId) {
-            console.log('No conversation selected, not starting polling');
-            return;
-        }
+        const alertId = 'alert-' + Date.now();
+        const alertHTML = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert" id="${alertId}">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                ${this.escapeHtml(message)}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        `;
         
-        console.log('Starting message polling for conversation:', this.currentConversationId);
+        alertContainer.innerHTML = alertHTML;
         
-        // Initialize tracking variables
-        this.lastMessageCount = 0;
-        this.lastMessageTimestamp = null;
-        this.isLoadingMessages = false;
-        
-        // Poll for new messages every 30 seconds
-        this.messagePollingInterval = setInterval(async () => {
-            if (!this.currentConversationId || this.isLoadingMessages) {
-                return;
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            const alert = document.getElementById(alertId);
+            if (alert) {
+                alert.remove();
             }
-
-            try {
-                const response = await fetch(`/api/conversations/${this.currentConversationId}/messages/check`, {
-                    credentials: 'include'
-                });
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                
-                // Only reload if there are new messages
-                if (data.messageCount !== this.lastMessageCount || 
-                    data.lastMessageTimestamp !== this.lastMessageTimestamp) {
-                    console.log('New messages detected, reloading...');
-                    await this.loadMessages(this.currentConversationId);
-                }
-            } catch (error) {
-                console.error('Error checking messages:', error);
-            }
-        }, 30000); // Check every 30 seconds
+        }, 5000);
     }
 
-    stopMessagePolling() {
-        if (this.messagePollingInterval) {
-            clearInterval(this.messagePollingInterval);
-            this.messagePollingInterval = null;
+    formatTimeAgo(dateString) {
+        if (!dateString) return '';
+        
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffInSeconds = Math.floor((now - date) / 1000);
+        
+        if (diffInSeconds < 60) {
+            return 'Nu';
+        } else if (diffInSeconds < 3600) {
+            const minutes = Math.floor(diffInSeconds / 60);
+            return `${minutes}m geleden`;
+        } else if (diffInSeconds < 86400) {
+            const hours = Math.floor(diffInSeconds / 3600);
+            return `${hours}u geleden`;
+        } else if (diffInSeconds < 604800) {
+            const days = Math.floor(diffInSeconds / 86400);
+            return `${days}d geleden`;
+        } else {
+            return date.toLocaleDateString('nl-NL', { 
+                day: 'numeric', 
+                month: 'short' 
+            });
         }
-        this.messageCache.clear(); // Clear message cache when stopping polling
+    }
+
+    getConversationTypeBadge(type) {
+        switch (type) {
+            case 'family': return 'Familie';
+            case 'direct': return 'Direct';
+            case 'group': return 'Groep';
+            default: return 'Gesprek';
+        }
+    }
+
+    startPolling() {
+        if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+        }
+        
+        // Much faster polling since we're using in-memory storage (every 2 seconds instead of 60)
+        this.pollingInterval = setInterval(() => {
+            if (this.currentConversationId && !this.isLoadingMessages) {
+                this.loadMessages(this.currentConversationId);
+            }
+        }, 2000); // 2 seconds - much faster!
+        
+        console.log('🚀 Started fast polling every 2 seconds');
+    }
+
+    stopPolling() {
+        if (this.pollingInterval) {
+            clearInterval(this.pollingInterval);
+            this.pollingInterval = null;
+            console.log('⏹️ Stopped polling');
+        }
     }
 
     async logout() {
@@ -1014,7 +1199,7 @@ class MessagingManager {
             });
 
             if (response.ok) {
-                this.stopMessagePolling();
+                this.stopPolling();
                 localStorage.removeItem('user');
                 window.location.href = '/login.html';
             } else {
@@ -1050,6 +1235,7 @@ class MessagingManager {
     }
 
     escapeHtml(text) {
+        if (!text) return '';
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
@@ -1057,30 +1243,103 @@ class MessagingManager {
 
     getAvatarColor(name) {
         const colors = [
-            '#4CAF50', // Green for parents
-            '#2196F3', // Blue for children
-            '#9C27B0', // Purple for others
+            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+            '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
+            '#F8C471', '#82E0AA', '#F1948A', '#85C1E9', '#D7BDE2'
         ];
         
-        const charCode = name.toLowerCase().charCodeAt(0) - 97;
-        return colors[charCode % colors.length];
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) {
+            hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        
+        return colors[Math.abs(hash) % colors.length];
     }
 
     goBackToConversations() {
-        // Stop message polling when going back
-        this.stopMessagePolling();
+        const chatArea = document.getElementById('active-chat');
+        const noChatSelected = document.getElementById('no-chat-selected');
+        const sidebar = document.getElementById('conversations-sidebar');
         
-        // Hide active chat
-        document.getElementById('active-chat').classList.add('d-none');
-        // Show no chat selected message
-        document.getElementById('no-chat-selected').classList.remove('d-none');
-        // Clear current conversation
+        if (chatArea) chatArea.classList.add('d-none');
+        if (noChatSelected) noChatSelected.classList.remove('d-none');
+        if (sidebar) sidebar.classList.add('show');
+        
+        // Stop polling
+        this.stopPolling();
         this.currentConversationId = null;
-        // Clear selected conversation highlight
+    }
+
+    clearReplyState() {
+        // Implementation of clearReplyState method
+    }
+
+    async deleteConversation() {
+        if (!this.currentConversation || !this.currentConversationId) {
+            this.showNotification('Geen gesprek geselecteerd om te verwijderen.', 'warning');
+            return;
+        }
+
+        // Show confirmation dialog
+        const confirmDelete = confirm(
+            `Weet je zeker dat je het gesprek "${this.currentConversation.title || 'Onbekend'}" wilt verwijderen?\n\n` +
+            'Dit kan niet ongedaan gemaakt worden en alle berichten zullen verloren gaan.'
+        );
+
+        if (!confirmDelete) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/conversations/${this.currentConversationId}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showNotification('Gesprek succesvol verwijderd.', 'success');
+                
+                // Reset chat area
+                document.getElementById('active-chat').classList.add('d-none');
+                document.getElementById('no-chat-selected').classList.remove('d-none');
+                
+                // Clear current conversation
+                this.currentConversationId = null;
+                this.currentConversation = null;
+                
+                // Reload conversations list
+                await this.loadConversations();
+                
+            } else {
+                throw new Error(result.message || 'Fout bij verwijderen van gesprek');
+            }
+        } catch (error) {
+            console.error('Error deleting conversation:', error);
+            this.showNotification('Er is een fout opgetreden bij het verwijderen van het gesprek.', 'danger');
+        }
+    }
+
+    updateSelectedConversation(conversationId) {
         const conversationElements = document.querySelectorAll('.conversation-item');
-        conversationElements.forEach(el => el.classList.remove('active'));
-        // Show conversations list on mobile
-        document.getElementById('conversations-sidebar').classList.add('show');
+        conversationElements.forEach(el => {
+            el.classList.remove('active');
+            if (String(el.dataset.conversationId) === String(conversationId)) {
+                el.classList.add('active');
+            }
+        });
+    }
+
+    toggleMobileConversations() {
+        const sidebar = document.getElementById('conversations-sidebar');
+        if (sidebar) {
+            sidebar.classList.toggle('show');
+        }
     }
 }
 

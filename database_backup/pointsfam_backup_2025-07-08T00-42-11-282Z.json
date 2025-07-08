@@ -1,0 +1,991 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "parent1",
+      "password_hash": "$2b$10$gDbod.6L1RZNTzDVRV0shOkdUBhdOnY0u7TVw4bQblCX6Pd/PK.ES",
+      "first_name": "John",
+      "last_name": "Johnson",
+      "role": "parent",
+      "family_id": 1,
+      "points": 0,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    },
+    {
+      "id": 2,
+      "username": "parent2",
+      "password_hash": "$2b$10$gDbod.6L1RZNTzDVRV0shOkdUBhdOnY0u7TVw4bQblCX6Pd/PK.ES",
+      "first_name": "Jane",
+      "last_name": "Johnson",
+      "role": "parent",
+      "family_id": 1,
+      "points": 0,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    },
+    {
+      "id": 3,
+      "username": "child1",
+      "password_hash": "$2b$10$gDbod.6L1RZNTzDVRV0shOkdUBhdOnY0u7TVw4bQblCX6Pd/PK.ES",
+      "first_name": "Emma",
+      "last_name": "Johnson",
+      "role": "child",
+      "family_id": 1,
+      "points": 150,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    },
+    {
+      "id": 4,
+      "username": "child2",
+      "password_hash": "$2b$10$gDbod.6L1RZNTzDVRV0shOkdUBhdOnY0u7TVw4bQblCX6Pd/PK.ES",
+      "first_name": "Liam",
+      "last_name": "Johnson",
+      "role": "child",
+      "family_id": 1,
+      "points": 75,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    },
+    {
+      "id": 5,
+      "username": "papa_berg",
+      "password_hash": "$2b$10$gDbod.6L1RZNTzDVRV0shOkdUBhdOnY0u7TVw4bQblCX6Pd/PK.ES",
+      "first_name": "Piet",
+      "last_name": "van der Berg",
+      "role": "parent",
+      "family_id": 2,
+      "points": 0,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    },
+    {
+      "id": 6,
+      "username": "mama_berg",
+      "password_hash": "$2b$10$gDbod.6L1RZNTzDVRV0shOkdUBhdOnY0u7TVw4bQblCX6Pd/PK.ES",
+      "first_name": "Maria",
+      "last_name": "van der Berg",
+      "role": "parent",
+      "family_id": 2,
+      "points": 0,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    },
+    {
+      "id": 7,
+      "username": "lisa_berg",
+      "password_hash": "$2b$10$gDbod.6L1RZNTzDVRV0shOkdUBhdOnY0u7TVw4bQblCX6Pd/PK.ES",
+      "first_name": "Lisa",
+      "last_name": "van der Berg",
+      "role": "child",
+      "family_id": 2,
+      "points": 200,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    },
+    {
+      "id": 8,
+      "username": "tom_berg",
+      "password_hash": "$2b$10$gDbod.6L1RZNTzDVRV0shOkdUBhdOnY0u7TVw4bQblCX6Pd/PK.ES",
+      "first_name": "Tom",
+      "last_name": "van der Berg",
+      "role": "child",
+      "family_id": 2,
+      "points": 120,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    },
+    {
+      "id": 9,
+      "username": "dad_smith",
+      "password_hash": "$2b$10$gDbod.6L1RZNTzDVRV0shOkdUBhdOnY0u7TVw4bQblCX6Pd/PK.ES",
+      "first_name": "David",
+      "last_name": "Smith",
+      "role": "parent",
+      "family_id": 3,
+      "points": 0,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    },
+    {
+      "id": 10,
+      "username": "sarah_smith",
+      "password_hash": "$2b$10$gDbod.6L1RZNTzDVRV0shOkdUBhdOnY0u7TVw4bQblCX6Pd/PK.ES",
+      "first_name": "Sarah",
+      "last_name": "Smith",
+      "role": "child",
+      "family_id": 3,
+      "points": 95,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    }
+  ],
+  "families": [
+    {
+      "id": 1,
+      "name": "The Johnson Family",
+      "created_at": "2025-07-04T17:58:11.000Z"
+    },
+    {
+      "id": 2,
+      "name": "Familie van der Berg",
+      "created_at": "2025-07-04T17:58:11.000Z"
+    },
+    {
+      "id": 3,
+      "name": "The Smith Family",
+      "created_at": "2025-07-04T17:58:11.000Z"
+    }
+  ],
+  "conversations": [
+    {
+      "id": 1,
+      "type": "family",
+      "title": "Familie Johnson Chat",
+      "description": "Algemene familie chat voor The Johnson Family",
+      "family_id": 1,
+      "created_by": 1,
+      "created_at": "2025-07-07T08:00:00.000Z",
+      "updated_at": "2025-07-07T10:30:00.000Z"
+    },
+    {
+      "id": 2,
+      "type": "family",
+      "title": "Familie van der Berg",
+      "description": "Familie gesprek voor dagelijkse zaken",
+      "family_id": 2,
+      "created_by": 5,
+      "created_at": "2025-07-07T07:00:00.000Z",
+      "updated_at": "2025-07-07T09:45:00.000Z"
+    },
+    {
+      "id": 3,
+      "type": "direct",
+      "title": "John & Emma",
+      "description": "Direct gesprek tussen vader en dochter",
+      "family_id": null,
+      "created_by": 1,
+      "created_at": "2025-07-07T06:00:00.000Z",
+      "updated_at": "2025-07-07T08:15:00.000Z"
+    },
+    {
+      "id": 4,
+      "type": "group",
+      "title": "Ouders Support Groep",
+      "description": "Ondersteuning voor ouders",
+      "family_id": null,
+      "created_by": 1,
+      "created_at": "2025-07-07T05:00:00.000Z",
+      "updated_at": "2025-07-07T12:20:00.000Z"
+    },
+    {
+      "id": 5,
+      "type": "cross_family",
+      "title": "Cross-Familie Chat",
+      "description": "Gesprek tussen verschillende families",
+      "family_id": null,
+      "created_by": 1,
+      "created_at": "2025-07-07T04:00:00.000Z",
+      "updated_at": "2025-07-07T11:10:00.000Z"
+    }
+  ],
+  "conversation_participants": [
+    {
+      "conversation_id": 1,
+      "user_id": 1,
+      "role": "admin",
+      "joined_at": "2025-07-07T08:00:00.000Z",
+      "is_active": 1
+    },
+    {
+      "conversation_id": 1,
+      "user_id": 2,
+      "role": "admin",
+      "joined_at": "2025-07-07T08:00:00.000Z",
+      "is_active": 1
+    },
+    {
+      "conversation_id": 1,
+      "user_id": 3,
+      "role": "member",
+      "joined_at": "2025-07-07T08:00:00.000Z",
+      "is_active": 1
+    },
+    {
+      "conversation_id": 1,
+      "user_id": 4,
+      "role": "member",
+      "joined_at": "2025-07-07T08:00:00.000Z",
+      "is_active": 1
+    },
+    {
+      "conversation_id": 2,
+      "user_id": 5,
+      "role": "admin",
+      "joined_at": "2025-07-07T07:00:00.000Z",
+      "is_active": 1
+    },
+    {
+      "conversation_id": 2,
+      "user_id": 6,
+      "role": "admin",
+      "joined_at": "2025-07-07T07:00:00.000Z",
+      "is_active": 1
+    },
+    {
+      "conversation_id": 2,
+      "user_id": 7,
+      "role": "member",
+      "joined_at": "2025-07-07T07:00:00.000Z",
+      "is_active": 1
+    },
+    {
+      "conversation_id": 2,
+      "user_id": 8,
+      "role": "member",
+      "joined_at": "2025-07-07T07:00:00.000Z",
+      "is_active": 1
+    },
+    {
+      "conversation_id": 3,
+      "user_id": 1,
+      "role": "admin",
+      "joined_at": "2025-07-07T06:00:00.000Z",
+      "is_active": 1
+    },
+    {
+      "conversation_id": 3,
+      "user_id": 3,
+      "role": "member",
+      "joined_at": "2025-07-07T06:00:00.000Z",
+      "is_active": 1
+    },
+    {
+      "conversation_id": 4,
+      "user_id": 1,
+      "role": "admin",
+      "joined_at": "2025-07-07T05:00:00.000Z",
+      "is_active": 1
+    },
+    {
+      "conversation_id": 4,
+      "user_id": 2,
+      "role": "member",
+      "joined_at": "2025-07-07T05:00:00.000Z",
+      "is_active": 1
+    },
+    {
+      "conversation_id": 4,
+      "user_id": 5,
+      "role": "member",
+      "joined_at": "2025-07-07T05:00:00.000Z",
+      "is_active": 1
+    },
+    {
+      "conversation_id": 4,
+      "user_id": 6,
+      "role": "member",
+      "joined_at": "2025-07-07T05:00:00.000Z",
+      "is_active": 1
+    },
+    {
+      "conversation_id": 5,
+      "user_id": 1,
+      "role": "admin",
+      "joined_at": "2025-07-07T04:00:00.000Z",
+      "is_active": 1
+    },
+    {
+      "conversation_id": 5,
+      "user_id": 5,
+      "role": "member",
+      "joined_at": "2025-07-07T04:00:00.000Z",
+      "is_active": 1
+    },
+    {
+      "conversation_id": 5,
+      "user_id": 9,
+      "role": "member",
+      "joined_at": "2025-07-07T04:00:00.000Z",
+      "is_active": 1
+    }
+  ],
+  "messages": [
+    {
+      "id": 1,
+      "conversation_id": 1,
+      "sender_id": 1,
+      "message_type": "text",
+      "content": "Hallo allemaal! Welkom in onze familie chat 👋",
+      "file_path": null,
+      "file_name": null,
+      "file_size": null,
+      "reply_to_message_id": null,
+      "is_deleted": 0,
+      "is_edited": 0,
+      "edited_at": null,
+      "created_at": "2025-07-07T08:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "conversation_id": 1,
+      "sender_id": 3,
+      "message_type": "text",
+      "content": "Hoi papa! Leuk dat we nu kunnen chatten 😊",
+      "file_path": null,
+      "file_name": null,
+      "file_size": null,
+      "reply_to_message_id": null,
+      "is_deleted": 0,
+      "is_edited": 0,
+      "edited_at": null,
+      "created_at": "2025-07-07T08:05:00.000Z"
+    },
+    {
+      "id": 3,
+      "conversation_id": 1,
+      "sender_id": 2,
+      "message_type": "text",
+      "content": "Dit is heel handig om afspraken te maken!",
+      "file_path": null,
+      "file_name": null,
+      "file_size": null,
+      "reply_to_message_id": null,
+      "is_deleted": 0,
+      "is_edited": 0,
+      "edited_at": null,
+      "created_at": "2025-07-07T08:10:00.000Z"
+    },
+    {
+      "id": 4,
+      "conversation_id": 1,
+      "sender_id": 4,
+      "message_type": "text",
+      "content": "Wanneer eten we vanavond?",
+      "file_path": null,
+      "file_name": null,
+      "file_size": null,
+      "reply_to_message_id": null,
+      "is_deleted": 0,
+      "is_edited": 0,
+      "edited_at": null,
+      "created_at": "2025-07-07T10:30:00.000Z"
+    },
+    {
+      "id": 5,
+      "conversation_id": 2,
+      "sender_id": 5,
+      "message_type": "text",
+      "content": "Goedemorgen familie! Hoe gaat het met iedereen?",
+      "file_path": null,
+      "file_name": null,
+      "file_size": null,
+      "reply_to_message_id": null,
+      "is_deleted": 0,
+      "is_edited": 0,
+      "edited_at": null,
+      "created_at": "2025-07-07T07:00:00.000Z"
+    },
+    {
+      "id": 6,
+      "conversation_id": 2,
+      "sender_id": 7,
+      "message_type": "text",
+      "content": "Goed papa! Ik ga vandaag mijn kamer opruimen 🧹",
+      "file_path": null,
+      "file_name": null,
+      "file_size": null,
+      "reply_to_message_id": null,
+      "is_deleted": 0,
+      "is_edited": 0,
+      "edited_at": null,
+      "created_at": "2025-07-07T07:15:00.000Z"
+    },
+    {
+      "id": 7,
+      "conversation_id": 2,
+      "sender_id": 6,
+      "message_type": "text",
+      "content": "Vergeet je huiswerk niet Lisa!",
+      "file_path": null,
+      "file_name": null,
+      "file_size": null,
+      "reply_to_message_id": 3,
+      "is_deleted": 0,
+      "is_edited": 0,
+      "edited_at": null,
+      "created_at": "2025-07-07T07:30:00.000Z"
+    },
+    {
+      "id": 8,
+      "conversation_id": 2,
+      "sender_id": 8,
+      "message_type": "text",
+      "content": "Mam, mag ik vrienden uitnodigen dit weekend?",
+      "file_path": null,
+      "file_name": null,
+      "file_size": null,
+      "reply_to_message_id": null,
+      "is_deleted": 0,
+      "is_edited": 0,
+      "edited_at": null,
+      "created_at": "2025-07-07T09:45:00.000Z"
+    },
+    {
+      "id": 9,
+      "conversation_id": 3,
+      "sender_id": 1,
+      "message_type": "text",
+      "content": "Hoi Emma, hoe ging het op school vandaag?",
+      "file_path": null,
+      "file_name": null,
+      "file_size": null,
+      "reply_to_message_id": null,
+      "is_deleted": 0,
+      "is_edited": 0,
+      "edited_at": null,
+      "created_at": "2025-07-07T06:00:00.000Z"
+    },
+    {
+      "id": 10,
+      "conversation_id": 3,
+      "sender_id": 3,
+      "message_type": "text",
+      "content": "Heel goed papa! Ik heb een 8 gehaald voor wiskunde! 🎉",
+      "file_path": null,
+      "file_name": null,
+      "file_size": null,
+      "reply_to_message_id": null,
+      "is_deleted": 0,
+      "is_edited": 0,
+      "edited_at": null,
+      "created_at": "2025-07-07T06:15:00.000Z"
+    },
+    {
+      "id": 11,
+      "conversation_id": 3,
+      "sender_id": 1,
+      "message_type": "text",
+      "content": "Wat geweldig! Daar ben ik heel trots op! 👏",
+      "file_path": null,
+      "file_name": null,
+      "file_size": null,
+      "reply_to_message_id": null,
+      "is_deleted": 0,
+      "is_edited": 0,
+      "edited_at": null,
+      "created_at": "2025-07-07T08:15:00.000Z"
+    },
+    {
+      "id": 12,
+      "conversation_id": 4,
+      "sender_id": 1,
+      "message_type": "text",
+      "content": "Hallo ouders! Welkom in onze support groep",
+      "file_path": null,
+      "file_name": null,
+      "file_size": null,
+      "reply_to_message_id": null,
+      "is_deleted": 0,
+      "is_edited": 0,
+      "edited_at": null,
+      "created_at": "2025-07-07T05:00:00.000Z"
+    },
+    {
+      "id": 13,
+      "conversation_id": 4,
+      "sender_id": 5,
+      "message_type": "text",
+      "content": "Fijn dat dit er is! Hoe gaan jullie om met schermtijd?",
+      "file_path": null,
+      "file_name": null,
+      "file_size": null,
+      "reply_to_message_id": null,
+      "is_deleted": 0,
+      "is_edited": 0,
+      "edited_at": null,
+      "created_at": "2025-07-07T07:30:00.000Z"
+    },
+    {
+      "id": 14,
+      "conversation_id": 4,
+      "sender_id": 2,
+      "message_type": "text",
+      "content": "Wij hebben vaste tijden ingesteld, werkt heel goed!",
+      "file_path": null,
+      "file_name": null,
+      "file_size": null,
+      "reply_to_message_id": null,
+      "is_deleted": 0,
+      "is_edited": 0,
+      "edited_at": null,
+      "created_at": "2025-07-07T12:20:00.000Z"
+    },
+    {
+      "id": 15,
+      "conversation_id": 5,
+      "sender_id": 1,
+      "message_type": "text",
+      "content": "Hallo families! Zullen we een gezamenlijke activiteit organiseren?",
+      "file_path": null,
+      "file_name": null,
+      "file_size": null,
+      "reply_to_message_id": null,
+      "is_deleted": 0,
+      "is_edited": 0,
+      "edited_at": null,
+      "created_at": "2025-07-07T04:00:00.000Z"
+    },
+    {
+      "id": 16,
+      "conversation_id": 5,
+      "sender_id": 5,
+      "message_type": "text",
+      "content": "Goed idee! Misschien een picknick in het park?",
+      "file_path": null,
+      "file_name": null,
+      "file_size": null,
+      "reply_to_message_id": null,
+      "is_deleted": 0,
+      "is_edited": 0,
+      "edited_at": null,
+      "created_at": "2025-07-07T06:30:00.000Z"
+    },
+    {
+      "id": 17,
+      "conversation_id": 5,
+      "sender_id": 9,
+      "message_type": "text",
+      "content": "Dat klinkt leuk! Wanneer hadden jullie gedacht?",
+      "file_path": null,
+      "file_name": null,
+      "file_size": null,
+      "reply_to_message_id": null,
+      "is_deleted": 0,
+      "is_edited": 0,
+      "edited_at": null,
+      "created_at": "2025-07-07T11:10:00.000Z"
+    },
+    {
+      "id": 18,
+      "conversation_id": 1,
+      "sender_id": 1,
+      "message_type": "text",
+      "content": "Test message from automated test",
+      "file_path": null,
+      "file_name": null,
+      "file_size": null,
+      "reply_to_message_id": null,
+      "is_deleted": 0,
+      "is_edited": 0,
+      "edited_at": null,
+      "created_at": "2025-07-07T22:19:30.000Z"
+    },
+    {
+      "id": 19,
+      "conversation_id": 1,
+      "sender_id": 1,
+      "message_type": "text",
+      "content": "Test message from automated test",
+      "file_path": null,
+      "file_name": null,
+      "file_size": null,
+      "reply_to_message_id": null,
+      "is_deleted": 0,
+      "is_edited": 0,
+      "edited_at": null,
+      "created_at": "2025-07-07T22:26:00.000Z"
+    },
+    {
+      "id": 20,
+      "conversation_id": 1,
+      "sender_id": 1,
+      "message_type": "text",
+      "content": "Hello family! This is a test message in existing chat.",
+      "file_path": null,
+      "file_name": null,
+      "file_size": null,
+      "reply_to_message_id": null,
+      "is_deleted": 0,
+      "is_edited": 0,
+      "edited_at": null,
+      "created_at": "2025-07-07T22:39:14.000Z"
+    }
+  ],
+  "message_status": [
+    {
+      "id": 1,
+      "message_id": 1,
+      "user_id": 2,
+      "status": "read",
+      "status_at": "2025-07-07T08:01:00.000Z"
+    },
+    {
+      "id": 2,
+      "message_id": 1,
+      "user_id": 3,
+      "status": "read",
+      "status_at": "2025-07-07T08:02:00.000Z"
+    },
+    {
+      "id": 3,
+      "message_id": 1,
+      "user_id": 4,
+      "status": "read",
+      "status_at": "2025-07-07T08:03:00.000Z"
+    },
+    {
+      "id": 4,
+      "message_id": 2,
+      "user_id": 1,
+      "status": "read",
+      "status_at": "2025-07-07T22:41:02.000Z"
+    },
+    {
+      "id": 5,
+      "message_id": 2,
+      "user_id": 2,
+      "status": "read",
+      "status_at": "2025-07-07T08:07:00.000Z"
+    },
+    {
+      "id": 6,
+      "message_id": 2,
+      "user_id": 4,
+      "status": "read",
+      "status_at": "2025-07-07T08:08:00.000Z"
+    },
+    {
+      "id": 7,
+      "message_id": 3,
+      "user_id": 1,
+      "status": "read",
+      "status_at": "2025-07-07T22:41:02.000Z"
+    },
+    {
+      "id": 8,
+      "message_id": 3,
+      "user_id": 3,
+      "status": "read",
+      "status_at": "2025-07-07T08:12:00.000Z"
+    },
+    {
+      "id": 9,
+      "message_id": 3,
+      "user_id": 4,
+      "status": "read",
+      "status_at": "2025-07-07T08:13:00.000Z"
+    },
+    {
+      "id": 10,
+      "message_id": 4,
+      "user_id": 1,
+      "status": "read",
+      "status_at": "2025-07-07T22:41:02.000Z"
+    },
+    {
+      "id": 11,
+      "message_id": 4,
+      "user_id": 2,
+      "status": "read",
+      "status_at": "2025-07-07T10:32:00.000Z"
+    },
+    {
+      "id": 12,
+      "message_id": 4,
+      "user_id": 3,
+      "status": "read",
+      "status_at": "2025-07-07T10:33:00.000Z"
+    },
+    {
+      "id": 13,
+      "message_id": 9,
+      "user_id": 3,
+      "status": "read",
+      "status_at": "2025-07-07T06:01:00.000Z"
+    },
+    {
+      "id": 14,
+      "message_id": 10,
+      "user_id": 1,
+      "status": "read",
+      "status_at": "2025-07-07T06:16:00.000Z"
+    },
+    {
+      "id": 15,
+      "message_id": 11,
+      "user_id": 3,
+      "status": "read",
+      "status_at": "2025-07-07T08:16:00.000Z"
+    },
+    {
+      "id": 16,
+      "message_id": 12,
+      "user_id": 5,
+      "status": "read",
+      "status_at": "2025-07-07T05:01:00.000Z"
+    },
+    {
+      "id": 17,
+      "message_id": 12,
+      "user_id": 6,
+      "status": "read",
+      "status_at": "2025-07-07T05:02:00.000Z"
+    },
+    {
+      "id": 18,
+      "message_id": 13,
+      "user_id": 1,
+      "status": "read",
+      "status_at": "2025-07-07T07:31:00.000Z"
+    },
+    {
+      "id": 19,
+      "message_id": 13,
+      "user_id": 2,
+      "status": "read",
+      "status_at": "2025-07-07T07:32:00.000Z"
+    },
+    {
+      "id": 20,
+      "message_id": 13,
+      "user_id": 6,
+      "status": "read",
+      "status_at": "2025-07-07T07:33:00.000Z"
+    },
+    {
+      "id": 21,
+      "message_id": 15,
+      "user_id": 5,
+      "status": "read",
+      "status_at": "2025-07-07T04:01:00.000Z"
+    },
+    {
+      "id": 22,
+      "message_id": 15,
+      "user_id": 9,
+      "status": "read",
+      "status_at": "2025-07-07T04:02:00.000Z"
+    },
+    {
+      "id": 23,
+      "message_id": 16,
+      "user_id": 1,
+      "status": "read",
+      "status_at": "2025-07-07T06:31:00.000Z"
+    },
+    {
+      "id": 24,
+      "message_id": 16,
+      "user_id": 9,
+      "status": "read",
+      "status_at": "2025-07-07T06:32:00.000Z"
+    },
+    {
+      "id": 25,
+      "message_id": 1,
+      "user_id": 1,
+      "status": "read",
+      "status_at": "2025-07-07T22:41:02.000Z"
+    },
+    {
+      "id": 37,
+      "message_id": 18,
+      "user_id": 1,
+      "status": "read",
+      "status_at": "2025-07-07T22:41:02.000Z"
+    },
+    {
+      "id": 88,
+      "message_id": 19,
+      "user_id": 1,
+      "status": "read",
+      "status_at": "2025-07-07T22:41:02.000Z"
+    },
+    {
+      "id": 134,
+      "message_id": 20,
+      "user_id": 1,
+      "status": "read",
+      "status_at": "2025-07-07T22:41:02.000Z"
+    }
+  ],
+  "tasks": [
+    {
+      "id": 1,
+      "family_id": 1,
+      "name": "Vaatwasser inruimen",
+      "description": "Alle schone vaat uit de vaatwasser halen en op de juiste plek zetten",
+      "points": 10,
+      "category": "keuken",
+      "is_custom": 0,
+      "is_active": 1,
+      "created_by": 1,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    },
+    {
+      "id": 2,
+      "family_id": 1,
+      "name": "Kamer opruimen",
+      "description": "Eigen kamer netjes maken en speelgoed opruimen",
+      "points": 15,
+      "category": "slaapkamer",
+      "is_custom": 0,
+      "is_active": 1,
+      "created_by": 1,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    },
+    {
+      "id": 3,
+      "family_id": 1,
+      "name": "Hond uitlaten",
+      "description": "De hond een wandeling geven van minimaal 15 minuten",
+      "points": 20,
+      "category": "huisdieren",
+      "is_custom": 0,
+      "is_active": 1,
+      "created_by": 1,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    },
+    {
+      "id": 4,
+      "family_id": 1,
+      "name": "Huiswerk maken",
+      "description": "Alle huiswerk voor school afmaken",
+      "points": 25,
+      "category": "school",
+      "is_custom": 0,
+      "is_active": 1,
+      "created_by": 1,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    }
+  ],
+  "task_assignments": [],
+  "rewards": [
+    {
+      "id": 1,
+      "family_id": 1,
+      "name": "Kiezen wat we eten",
+      "description": "Jij mag kiezen wat we vanavond eten",
+      "points_required": 100,
+      "category": "eten",
+      "is_active": 1,
+      "created_by": 1,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    },
+    {
+      "id": 2,
+      "family_id": 1,
+      "name": "Extra schermtijd",
+      "description": "1 uur extra tijd op tablet/computer",
+      "points_required": 150,
+      "category": "entertainment",
+      "is_active": 1,
+      "created_by": 1,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    },
+    {
+      "id": 3,
+      "family_id": 1,
+      "name": "Later naar bed",
+      "description": "Op vrijdag 1 uur later naar bed",
+      "points_required": 200,
+      "category": "privileges",
+      "is_active": 1,
+      "created_by": 1,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    },
+    {
+      "id": 4,
+      "family_id": 1,
+      "name": "Ijsje halen",
+      "description": "Samen ijsje halen bij de ijssalon",
+      "points_required": 75,
+      "category": "treats",
+      "is_active": 1,
+      "created_by": 1,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    }
+  ],
+  "reward_redemptions": [],
+  "points_transactions": [
+    {
+      "id": 1,
+      "user_id": 3,
+      "points": 50,
+      "transaction_type": "bonus",
+      "description": "Welkom bonus",
+      "task_assignment_id": null,
+      "reward_id": null,
+      "created_by": 1,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    },
+    {
+      "id": 2,
+      "user_id": 3,
+      "points": 100,
+      "transaction_type": "earned",
+      "description": "Taken deze week voltooid",
+      "task_assignment_id": null,
+      "reward_id": null,
+      "created_by": 1,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    },
+    {
+      "id": 3,
+      "user_id": 4,
+      "points": 75,
+      "transaction_type": "earned",
+      "description": "Goed gedrag",
+      "task_assignment_id": null,
+      "reward_id": null,
+      "created_by": 1,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    },
+    {
+      "id": 4,
+      "user_id": 7,
+      "points": 200,
+      "transaction_type": "earned",
+      "description": "Uitstekende prestaties",
+      "task_assignment_id": null,
+      "reward_id": null,
+      "created_by": 5,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    },
+    {
+      "id": 5,
+      "user_id": 8,
+      "points": 120,
+      "transaction_type": "earned",
+      "description": "Taken voltooid",
+      "task_assignment_id": null,
+      "reward_id": null,
+      "created_by": 5,
+      "created_at": "2025-07-04T17:58:11.000Z"
+    }
+  ],
+  "profile_images": [
+    {
+      "id": 1,
+      "user_id": 2,
+      "image_path": "/uploads/profiles/profile-1751870077812-293955720.webp",
+      "description": null,
+      "uploaded_by": 1,
+      "family_id": 1,
+      "is_active": 1,
+      "created_at": "2025-07-07T04:34:44.000Z"
+    },
+    {
+      "id": 2,
+      "user_id": 4,
+      "image_path": "/uploads/profiles/profile-1751870085417-413077029.jpg",
+      "description": null,
+      "uploaded_by": 1,
+      "family_id": 1,
+      "is_active": 1,
+      "created_at": "2025-07-07T04:34:51.000Z"
+    },
+    {
+      "id": 3,
+      "user_id": 3,
+      "image_path": "/uploads/profiles/profile-1751870091560-473382993.avif",
+      "description": null,
+      "uploaded_by": 1,
+      "family_id": 1,
+      "is_active": 1,
+      "created_at": "2025-07-07T04:34:58.000Z"
+    }
+  ]
+}

@@ -12,6 +12,83 @@ const Database = require('./db');
 // Initialize database
 const db = new Database();
 
+// Add in-memory message storage at the top
+const messageStore = new Map(); // conversationId -> messages[]
+const activeUsers = new Map(); // userId -> user info
+
+// Initialize sample messages after database connection
+setTimeout(async () => {
+    try {
+        // Get existing conversations from database
+        const conversations = await db.getConversationsForUser(1); // User ID 1 (John)
+        console.log('Available conversations:', conversations.map(c => ({ id: c.id, title: c.title })));
+        
+        if (conversations.length > 0) {
+            const firstConversation = conversations[0];
+            console.log('Using conversation ID:', firstConversation.id);
+            
+            // Add sample messages for the first available conversation
+            messageStore.set(String(firstConversation.id), [
+                {
+                    id: 1,
+                    conversation_id: String(firstConversation.id),
+                    sender_id: 1,
+                    sender_name: 'John Johnson',
+                    sender_first_name: 'John',
+                    sender_last_name: 'Johnson',
+                    sender_role: 'parent',
+                    content: 'Welkom in de familie chat! 👨‍👩‍👧‍👦',
+                    created_at: '2025-07-07T20:00:00.000Z'
+                },
+                {
+                    id: 2,
+                    conversation_id: String(firstConversation.id),
+                    sender_id: 2,
+                    sender_name: 'Jane Johnson',
+                    sender_first_name: 'Jane',
+                    sender_last_name: 'Johnson',
+                    sender_role: 'parent',
+                    content: 'Hoi allemaal! Hoe gaat het vandaag? 😊',
+                    created_at: '2025-07-07T20:05:00.000Z'
+                },
+                {
+                    id: 3,
+                    conversation_id: String(firstConversation.id),
+                    sender_id: 3,
+                    sender_name: 'Emma Johnson',
+                    sender_first_name: 'Emma',
+                    sender_last_name: 'Johnson',
+                    sender_role: 'child',
+                    content: 'Hoi mama en papa! School was leuk vandaag! 📚',
+                    created_at: '2025-07-07T20:10:00.000Z'
+                }
+            ]);
+            
+            console.log('💾 Initialized sample messages for conversation ID:', firstConversation.id);
+            console.log('💾 Message store now has:', Array.from(messageStore.keys()));
+        } else {
+            console.log('⚠️ No conversations found in database');
+        }
+    } catch (error) {
+        console.error('Error initializing sample messages:', error);
+        // Fallback to hardcoded conversation IDs
+        messageStore.set('1', [
+            {
+                id: 1,
+                conversation_id: '1',
+                sender_id: 1,
+                sender_name: 'John Johnson',
+                sender_first_name: 'John',
+                sender_last_name: 'Johnson',
+                sender_role: 'parent',
+                content: 'Test bericht - dit laden is nu super snel! ⚡',
+                created_at: '2025-07-07T21:00:00.000Z'
+            }
+        ]);
+        console.log('💾 Initialized fallback sample messages');
+    }
+}, 3000); // Wait 3 seconds for database to be ready
+
 // Initialize Express app
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -183,20 +260,20 @@ app.get('/api/user', requireAuth, (req, res) => {
 // Messaging endpoints
 app.get('/api/conversations', requireAuth, async (req, res) => {
     try {
-        const userId = req.session.user.id;
-        const familyOnly = req.query.family_only === 'true';
+        const user = req.session.user;
+        const { family_only } = req.query;
         
         let conversations;
-        if (familyOnly) {
-            conversations = await db.getFamilyConversationsForUser(userId);
+        if (family_only === 'true') {
+            conversations = await db.getFamilyConversationsForUser(user.id);
         } else {
-            conversations = await db.getConversationsForUser(userId);
+            conversations = await db.getConversationsForUser(user.id);
         }
-
-        res.json({ conversations });
+        
+        res.json({ success: true, conversations });
     } catch (error) {
-        console.error('Error fetching conversations:', error);
-        res.status(500).json({ error: 'Er is een fout opgetreden bij het laden van gesprekken.' });
+        console.error('Get conversations error:', error);
+        res.status(500).json({ error: 'Error loading conversations' });
     }
 });
 
@@ -215,45 +292,79 @@ app.get('/api/conversations/:id', requireAuth, async (req, res) => {
     }
 });
 
-app.get('/api/conversations/:id/messages', requireAuth, async (req, res) => {
+app.get('/api/conversations/:conversationId/messages', requireAuth, async (req, res) => {
     try {
+        const { conversationId } = req.params;
         const limit = Math.min(parseInt(req.query.limit) || 50, 100);
         const offset = parseInt(req.query.offset) || 0;
+        const user = req.session.user;
+
+        console.log('📨 Loading messages for conversation:', conversationId, 'User:', user.id);
+
+        // Get messages from memory
+        const messages = messageStore.get(String(conversationId)) || [];
         
-        console.log('Loading messages:', { conversationId: req.params.id, limit, offset, userId: req.session.user.id });
+        // Apply pagination
+        const paginatedMessages = messages.slice(-limit - offset, messages.length - offset).reverse();
         
-        const messages = await db.getMessages(req.params.id, limit, offset);
-        const messageCount = messages.length;
-        
-        console.log('Messages query successful:', { conversationId: req.params.id, limit, offset, messageCount });
+        console.log(`📨 Loaded ${paginatedMessages.length} messages for conversation ${conversationId}`);
         
         res.json({ 
-            messages,
+            messages: paginatedMessages,
             pagination: {
                 limit,
                 offset,
-                total: messageCount
+                total: messages.length
             }
         });
     } catch (error) {
-        console.error('Error fetching messages:', error);
-        res.status(500).json({ error: 'Er is een fout opgetreden bij het laden van berichten.' });
+        console.error('Get messages error:', error);
+        res.status(500).json({ 
+            error: 'Er is een fout opgetreden bij het laden van berichten',
+            code: 'LOAD_ERROR',
+            details: error.message
+        });
     }
 });
 
-app.post('/api/conversations/:id/messages', requireAuth, async (req, res) => {
+app.post('/api/conversations/:conversationId/messages', requireAuth, async (req, res) => {
     try {
-        const messageData = {
-            conversation_id: req.params.id,
-            sender_id: req.session.user.id,
-            content: req.body.content
+        const { conversationId } = req.params;
+        const { content } = req.body;
+        const user = req.session.user;
+        
+        // Create message object
+        const message = {
+            id: Date.now() + Math.random(), // Unique ID
+            conversation_id: conversationId,
+            sender_id: user.id,
+            sender_name: `${user.first_name} ${user.last_name}`,
+            sender_first_name: user.first_name,
+            sender_last_name: user.last_name,
+            sender_role: user.role,
+            content: content,
+            created_at: new Date().toISOString()
         };
         
-        const message = await db.sendMessage(messageData);
+        // Store in memory
+        if (!messageStore.has(conversationId)) {
+            messageStore.set(conversationId, []);
+        }
+        
+        const messages = messageStore.get(conversationId);
+        messages.push(message);
+        
+        // Keep only last 100 messages per conversation to save memory
+        if (messages.length > 100) {
+            messages.splice(0, messages.length - 100);
+        }
+        
+        console.log(`💬 Message sent to conversation ${conversationId}: "${content.substring(0, 50)}..."`);
+        
         res.json({ success: true, message });
     } catch (error) {
-        console.error('Error sending message:', error);
-        res.status(500).json({ error: 'Er is een fout opgetreden bij het verzenden van je bericht.' });
+        console.error('Send message error:', error);
+        res.status(500).json({ error: 'Error sending message' });
     }
 });
 
@@ -1324,11 +1435,24 @@ app.get('/api/conversations', requireAuth, async (req, res) => {
 app.get('/api/family/members', requireAuth, async (req, res) => {
     try {
         const user = req.session.user;
-        const members = await db.getFamilyMembersForMessaging(user.id);
-        res.json({ success: true, family_members: members, family_name: user.familyName });
+        
+        console.log('👨‍👩‍👧‍👦 Getting family members for user:', user.firstName, 'Family ID:', user.familyId);
+        
+        const familyMembers = await db.getFamilyMembers(user.familyId);
+        
+        console.log('✅ Retrieved family members:', familyMembers.length);
+        
+        res.json({
+            success: true,
+            members: familyMembers
+        });
+        
     } catch (error) {
-        console.error('Get family members error:', error);
-        res.status(500).json({ error: 'Error loading family members' });
+        console.error('Error getting family members:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Kon familie leden niet laden'
+        });
     }
 });
 
@@ -1348,43 +1472,6 @@ app.get('/api/conversations/:conversationId', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('Get conversation error:', error);
         res.status(500).json({ error: 'Error loading conversation' });
-    }
-});
-
-// Get messages for a conversation
-app.get('/api/conversations/:conversationId/messages', requireAuth, async (req, res) => {
-    try {
-        const { conversationId } = req.params;
-        const limit = Math.min(parseInt(req.query.limit) || 50, 100); // Cap at 100 messages
-        const offset = parseInt(req.query.offset) || 0;
-        const user = req.session.user;
-
-        // Check if user is participant in conversation
-        const conversation = await db.getConversationById(conversationId, user.id);
-        if (!conversation) {
-            return res.status(403).json({ 
-                error: 'Je hebt geen toegang tot dit gesprek',
-                code: 'ACCESS_DENIED'
-            });
-        }
-        
-        const messages = await db.getMessages(conversationId, limit, offset);
-        
-        res.json({ 
-            messages,
-            pagination: {
-                limit,
-                offset,
-                total: messages.length
-            }
-        });
-    } catch (error) {
-        console.error('Get messages error:', error);
-        res.status(500).json({ 
-            error: 'Er is een fout opgetreden bij het laden van berichten',
-            code: 'LOAD_ERROR',
-            details: error.message
-        });
     }
 });
 
@@ -1420,24 +1507,38 @@ app.get('/api/conversations/:conversationId/messages/check', requireAuth, async 
 app.post('/api/conversations/:conversationId/messages', requireAuth, async (req, res) => {
     try {
         const { conversationId } = req.params;
-        const { content, reply_to_message_id } = req.body;
+        const { content } = req.body;
         const user = req.session.user;
         
-        // Check if user is participant in conversation
-        const conversation = await db.getConversationById(conversationId, user.id);
-        if (!conversation) {
-            return res.status(403).json({ error: 'Access denied' });
-        }
-        
-        const messageData = {
+        // Create message object
+        const message = {
+            id: Date.now() + Math.random(), // Unique ID
             conversation_id: conversationId,
             sender_id: user.id,
-            content,
-            reply_to_message_id: reply_to_message_id || null
+            sender_name: `${user.first_name} ${user.last_name}`,
+            sender_first_name: user.first_name,
+            sender_last_name: user.last_name,
+            sender_role: user.role,
+            content: content,
+            created_at: new Date().toISOString()
         };
         
-        const messageId = await db.sendMessage(messageData);
-        res.json({ success: true, messageId, message: 'Message sent successfully' });
+        // Store in memory
+        if (!messageStore.has(conversationId)) {
+            messageStore.set(conversationId, []);
+        }
+        
+        const messages = messageStore.get(conversationId);
+        messages.push(message);
+        
+        // Keep only last 100 messages per conversation to save memory
+        if (messages.length > 100) {
+            messages.splice(0, messages.length - 100);
+        }
+        
+        console.log(`💬 Message sent to conversation ${conversationId}: "${content.substring(0, 50)}..."`);
+        
+        res.json({ success: true, message });
     } catch (error) {
         console.error('Send message error:', error);
         res.status(500).json({ error: 'Error sending message' });
@@ -1476,30 +1577,123 @@ app.post('/api/conversations', requireAuth, async (req, res) => {
         const { type, title, description, participants } = req.body;
         const user = req.session.user;
         
+        console.log('Creating conversation:', { type, title, user: user.firstName });
+        console.log('User details:', { id: user.id, familyId: user.familyId, family_id: user.family_id });
+        
+        // Get the user's family ID from the database to ensure we have the correct value
+        const userFromDb = await db.getUserById(user.id);
+        console.log('User from database:', userFromDb);
+        
+        if (!userFromDb) {
+            return res.status(400).json({ error: 'User not found in database' });
+        }
+        
+        const familyId = userFromDb.family_id;
+        console.log('Family ID resolved:', familyId);
+        
         const conversationData = {
             type: type || 'direct',
-            title,
-            description,
-            family_id: type === 'family' ? user.familyId : null,
+            title: title || null,
+            description: description || null,
+            family_id: type === 'family' ? familyId : null,
             created_by: user.id
         };
         
+        console.log('Conversation data before creation:', conversationData);
+        console.log('All values defined?', {
+            type: conversationData.type !== undefined,
+            title: conversationData.title !== undefined,
+            description: conversationData.description !== undefined,
+            family_id: conversationData.family_id !== undefined,
+            created_by: conversationData.created_by !== undefined
+        });
+        
         const conversationId = await db.createConversation(conversationData);
+        console.log('Conversation created with ID:', conversationId);
         
-        // Add creator as admin
-        await db.addParticipantToConversation(conversationId, user.id, 'admin');
-        
-        // Add other participants
-        if (participants && participants.length > 0) {
-            for (const participantId of participants) {
-                await db.addParticipantToConversation(conversationId, participantId, 'member');
+        // Handle different conversation types
+        if (type === 'family') {
+            // For family chats, add all family members automatically
+            console.log('Getting family members for family ID:', familyId);
+            
+            const familyMembers = await db.getFamilyMembers(familyId);
+            console.log('Adding family members to conversation:', familyMembers.length);
+            
+            for (const member of familyMembers) {
+                const role = member.role === 'parent' ? 'admin' : 'member';
+                console.log(`Adding member ${member.first_name} ${member.last_name} as ${role}`);
+                await db.addParticipantToConversation(conversationId, member.id, role);
+            }
+        } else {
+            // Add creator as admin
+            await db.addParticipantToConversation(conversationId, user.id, 'admin');
+            
+            // Add other participants
+            if (participants && participants.length > 0) {
+                for (const participantId of participants) {
+                    await db.addParticipantToConversation(conversationId, participantId, 'member');
+                }
             }
         }
         
         res.json({ success: true, conversationId, message: 'Conversation created successfully' });
     } catch (error) {
         console.error('Create conversation error:', error);
+        console.error('Error stack:', error.stack);
         res.status(500).json({ error: 'Error creating conversation' });
+    }
+});
+
+// Delete a conversation
+app.delete('/api/conversations/:id', requireAuth, async (req, res) => {
+    try {
+        const conversationId = req.params.id;
+        const user = req.session.user;
+        
+        console.log('Delete conversation request:', { conversationId, userId: user.id });
+        
+        // Check if conversation exists and user has access
+        const conversation = await db.getConversationById(conversationId, user.id);
+        if (!conversation) {
+            console.log('Conversation not found or no access:', { conversationId, userId: user.id });
+            return res.status(404).json({ error: 'Gesprek niet gevonden of geen toegang' });
+        }
+        
+        console.log('Conversation found:', conversation);
+        
+        // Check if user has permission to delete (creator or admin)
+        const participants = await db.getConversationParticipants(conversationId);
+        const userParticipant = participants.find(p => p.id === user.id);
+        
+        console.log('User participant info:', userParticipant);
+        console.log('Conversation creator:', conversation.created_by);
+        
+        if (!userParticipant || (userParticipant.conversation_role !== 'admin' && conversation.created_by !== user.id)) {
+            console.log('Permission denied for deletion:', { 
+                userRole: userParticipant?.conversation_role, 
+                isCreator: conversation.created_by === user.id 
+            });
+            return res.status(403).json({ error: 'Geen toestemming om dit gesprek te verwijderen' });
+        }
+        
+        // Delete the conversation
+        console.log('Attempting to delete conversation...');
+        const deleted = await db.deleteConversation(conversationId);
+        
+        if (deleted) {
+            console.log('Conversation deleted successfully');
+            res.json({ success: true, message: 'Gesprek succesvol verwijderd' });
+        } else {
+            console.log('Failed to delete conversation - no rows affected');
+            res.status(500).json({ error: 'Gesprek kon niet worden verwijderd' });
+        }
+    } catch (error) {
+        console.error('Delete conversation error:', error);
+        console.error('Error stack:', error.stack);
+        res.status(500).json({ 
+            error: 'Er is een fout opgetreden bij het verwijderen van het gesprek',
+            details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 });
 
@@ -1577,6 +1771,70 @@ app.put('/api/messages/:messageId', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('Edit message error:', error);
         res.status(500).json({ error: 'Error updating message' });
+    }
+});
+
+// Simple Direct Messaging Endpoints
+app.get('/api/messages/direct/:userId', requireAuth, async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const currentUser = req.session.user;
+        
+        console.log(`📨 Loading direct messages between ${currentUser.id} and ${userId}`);
+        
+        // Get messages between current user and target user
+        const messages = await db.getDirectMessages(currentUser.id, parseInt(userId));
+        
+        console.log(`📨 Found ${messages.length} direct messages`);
+        
+        res.json({
+            success: true,
+            messages: messages
+        });
+        
+    } catch (error) {
+        console.error('Error loading direct messages:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Kon berichten niet laden'
+        });
+    }
+});
+
+app.post('/api/messages/direct', requireAuth, async (req, res) => {
+    try {
+        const { recipient_id, content } = req.body;
+        const sender = req.session.user;
+        
+        if (!recipient_id || !content) {
+            return res.status(400).json({
+                success: false,
+                message: 'Ontbrekende gegevens'
+            });
+        }
+        
+        console.log(`💬 Sending direct message from ${sender.id} to ${recipient_id}`);
+        
+        // Save message directly
+        const messageId = await db.saveDirectMessage({
+            sender_id: sender.id,
+            recipient_id: parseInt(recipient_id),
+            content: content.trim()
+        });
+        
+        console.log(`✅ Direct message saved with ID: ${messageId}`);
+        
+        res.json({
+            success: true,
+            message_id: messageId
+        });
+        
+    } catch (error) {
+        console.error('Error sending direct message:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Kon bericht niet versturen'
+        });
     }
 });
 
@@ -1660,3 +1918,14 @@ process.on('unhandledRejection', (reason, promise) => {
     console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
     process.exit(1);
 });
+
+// Database connection
+(async () => {
+    try {
+        await db.connect();
+        console.log('🔧 Database initialized successfully');
+    } catch (error) {
+        console.error('❌ Database initialization failed:', error);
+        process.exit(1);
+    }
+})();
