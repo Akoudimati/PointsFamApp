@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gebruikersreis - PointsFam</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/light-theme.css" id="theme-stylesheet">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="alternate icon" href="/favicon.ico" type="image/x-icon">
+</head>
+<body class="user-journey-page">
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-custom">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-star me-2"></i>
+                PointsFam
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link text-light me-3" href="/about">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Over ons
+                </a>
+                <a class="nav-link text-light me-3" href="/login">
+                    <i class="fas fa-sign-in-alt me-1"></i>
+                    Inloggen
+                </a>
+                <a class="nav-link text-light me-3" href="/register">
+                    <i class="fas fa-user-plus me-1"></i>
+                    Registreren
+                </a>
+                <button class="btn btn-outline-light btn-sm" id="theme-toggle">
+                    <i class="fas fa-moon" id="theme-icon"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-md-10">
+                <div class="card shadow-lg">
+                    <div class="card-header bg-dark text-white text-center">
+                        <h1 class="mb-0">
+                            <i class="fas fa-route me-2"></i>
+                            Gebruikersreis - PointsFam
+                        </h1>
+                        <p class="mb-0 mt-2">Ontdek hoe families PointsFam gebruiken</p>
+                    </div>
+                    <div class="card-body">
+                        
+                        <!-- Journey Overview -->
+                        <div class="text-center mb-5">
+                            <h3 class="text-primary">Van registratie tot beloning</h3>
+                            <p class="lead">Volg de reis van een gezin dat PointsFam gaat gebruiken</p>
+                        </div>
+
+                        <!-- Step 1: Registration -->
+                        <div class="row mb-5">
+                            <div class="col-md-2 text-center">
+                                <div class="step-number bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                    <span class="h4 mb-0">1</span>
+                                </div>
+                            </div>
+                            <div class="col-md-10">
+                                <div class="card border-primary">
+                                    <div class="card-body">
+                                        <h4 class="card-title text-primary">
+                                            <i class="fas fa-user-plus me-2"></i>
+                                            Registratie & Account Aanmaken
+                                        </h4>
+                                        <p class="card-text">
+                                            <strong>Papa Jan</strong> hoort over PointsFam en besluit het uit te proberen. 
+                                            Hij registreert zich als ouder en maakt accounts aan voor zijn kinderen Emma (8) en Tom (12).
+                                        </p>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6>Wat gebeurt er:</h6>
+                                                <ul>
+                                                    <li>Account aanmaken met e-mail</li>
+                                                    <li>Profiel invullen</li>
+                                                    <li>Kinderen toevoegen aan familie</li>
+                                                </ul>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6>Resultaat:</h6>
+                                                <ul>
+                                                    <li>Familie account is actief</li>
+                                                    <li>Kinderen kunnen inloggen</li>
+                                                    <li>Dashboard is beschikbaar</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Setting up tasks -->
+                        <div class="row mb-5">
+                            <div class="col-md-2 text-center">
+                                <div class="step-number bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                    <span class="h4 mb-0">2</span>
+                                </div>
+                            </div>
+                            <div class="col-md-10">
+                                <div class="card border-success">
+                                    <div class="card-body">
+                                        <h4 class="card-title text-success">
+                                            <i class="fas fa-tasks me-2"></i>
+                                            Taken & Beloningen Instellen
+                                        </h4>
+                                        <p class="card-text">
+                                            Papa Jan stelt verschillende taken in voor zijn kinderen en bepaalt hoeveel punten elke taak waard is. 
+                                            Hij maakt ook een lijst met beloningen die de kinderen kunnen kopen.
+                                        </p>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6>Voorbeeldtaken:</h6>
+                                                <ul>
+                                                    <li>Kamer opruimen - 10 punten</li>
+                                                    <li>Afwassen helpen - 15 punten</li>
+                                                    <li>Huiswerk maken - 20 punten</li>
+                                                    <li>Hond uitlaten - 25 punten</li>
+                                                </ul>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6>Voorbeeldbeloningen:</h6>
+                                                <ul>
+                                                    <li>Extra speeltijd - 50 punten</li>
+                                                    <li>Film kiezen - 75 punten</li>
+                                                    <li>Uit eten gaan - 100 punten</li>
+                                                    <li>Nieuw speelgoed - 200 punten</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Daily usage -->
+                        <div class="row mb-5">
+                            <div class="col-md-2 text-center">
+                                <div class="step-number bg-info text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                    <span class="h4 mb-0">3</span>
+                                </div>
+                            </div>
+                            <div class="col-md-10">
+                                <div class="card border-info">
+                                    <div class="card-body">
+                                        <h4 class="card-title text-info">
+                                            <i class="fas fa-calendar-day me-2"></i>
+                                            Dagelijks Gebruik
+                                        </h4>
+                                        <p class="card-text">
+                                            Emma en Tom gebruiken de app elke dag. Ze checken welke taken er zijn, 
+                                            markeren taken als voltooid, en kijken hoeveel punten ze hebben verzameld.
+                                        </p>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6>Emma's dag (8 jaar):</h6>
+                                                <ul>
+                                                    <li>Kamer opruimen ✅ +10 punten</li>
+                                                    <li>Tanden poetsen ✅ +5 punten</li>
+                                                    <li>Huiswerk maken ✅ +20 punten</li>
+                                                    <li><strong>Totaal vandaag: 35 punten</strong></li>
+                                                </ul>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6>Tom's dag (12 jaar):</h6>
+                                                <ul>
+                                                    <li>Hond uitlaten ✅ +25 punten</li>
+                                                    <li>Afwassen helpen ✅ +15 punten</li>
+                                                    <li>Vuilnis buiten zetten ✅ +10 punten</li>
+                                                    <li><strong>Totaal vandaag: 50 punten</strong></li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Rewards -->
+                        <div class="row mb-5">
+                            <div class="col-md-2 text-center">
+                                <div class="step-number bg-warning text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                    <span class="h4 mb-0">4</span>
+                                </div>
+                            </div>
+                            <div class="col-md-10">
+                                <div class="card border-warning">
+                                    <div class="card-body">
+                                        <h4 class="card-title text-warning">
+                                            <i class="fas fa-gift me-2"></i>
+                                            Beloningen Uitwisselen
+                                        </h4>
+                                        <p class="card-text">
+                                            Na een week hard werken hebben beide kinderen genoeg punten gespaard. 
+                                            Emma wil extra speeltijd en Tom spaar voor een uitje.
+                                        </p>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6>Emma's keuze:</h6>
+                                                <div class="alert alert-warning">
+                                                    <i class="fas fa-gamepad me-2"></i>
+                                                    <strong>Extra speeltijd</strong><br>
+                                                    Kosten: 50 punten<br>
+                                                    Emma heeft: 78 punten<br>
+                                                    <span class="text-success">✅ Kan kopen!</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6>Tom's spaardoel:</h6>
+                                                <div class="alert alert-info">
+                                                    <i class="fas fa-hamburger me-2"></i>
+                                                    <strong>Uit eten gaan</strong><br>
+                                                    Kosten: 100 punten<br>
+                                                    Tom heeft: 85 punten<br>
+                                                    <span class="text-primary">🎯 Nog 15 punten nodig</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 5: Family benefits -->
+                        <div class="row mb-5">
+                            <div class="col-md-2 text-center">
+                                <div class="step-number bg-danger text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                    <span class="h4 mb-0">5</span>
+                                </div>
+                            </div>
+                            <div class="col-md-10">
+                                <div class="card border-danger">
+                                    <div class="card-body">
+                                        <h4 class="card-title text-danger">
+                                            <i class="fas fa-heart me-2"></i>
+                                            Familie Voordelen
+                                        </h4>
+                                        <p class="card-text">
+                                            Na een maand ziet papa Jan geweldige resultaten. Het huis is schoner, 
+                                            de kinderen zijn gemotiveerder, en er is minder ruzie over taken.
+                                        </p>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6>Voor de ouders:</h6>
+                                                <ul>
+                                                    <li>Minder stress over huishouden</li>
+                                                    <li>Kinderen zijn zelfstandiger</li>
+                                                    <li>Duidelijke afspraken</li>
+                                                    <li>Meer tijd voor leuke dingen</li>
+                                                </ul>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6>Voor de kinderen:</h6>
+                                                <ul>
+                                                    <li>Duidelijk wat er verwacht wordt</li>
+                                                    <li>Beloning voor goed gedrag</li>
+                                                    <li>Sparen voor leuke dingen</li>
+                                                    <li>Gevoel van trots en prestatie</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Success Story -->
+                        <div class="alert alert-success">
+                            <h5><i class="fas fa-trophy me-2"></i>Succes</h5>
+                            <p class="mb-0">
+                                <em>"</em>
+                                <br><strong>-</strong>
+                            </p>
+                        </div>
+
+                        <!-- CTA Section -->
+                        <div class="text-center mt-5">
+                            <h4>Klaar om te beginnen?</h4>
+                            <p class="text-muted">Start vandaag nog met PointsFam en maak van huishoudelijke taken een leuke uitdaging!</p>
+                            <div class="d-flex justify-content-center gap-3">
+                                <a href="/register.html" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-user-plus me-2"></i>
+                                    Registreer Nu
+                                </a>
+                                <a href="/login.html" class="btn btn-outline-primary btn-lg">
+                                    <i class="fas fa-sign-in-alt me-2"></i>
+                                    Probeer Demo
+                                </a>
+                                <a href="/about.html" class="btn btn-outline-secondary btn-lg">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Meer Info
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer mt-5 py-4 bg-light border-top">
+        <div class="container">
+            <div class="row">
+                <div class="col-12 text-center">
+                    <p class="mb-0 text-muted">
+                        <i class="fas fa-heart text-danger me-1"></i>
+                        Made by <strong>Abdullah Koudimati</strong> for <strong>Samen ICT</strong>
+                    </p>
+                    <small class="text-muted">© 2025 PointsFam - Family Task Management System</small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+    <script src="/js/theme-switcher.js" defer></script>
+    
+    <style>
+        .step-number {
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        
+        .user-journey-page .card {
+            transition: transform 0.2s;
+        }
+        
+        .user-journey-page .card:hover {
+            transform: translateY(-2px);
+        }
+        
+        @media (max-width: 768px) {
+            .step-number {
+                margin-bottom: 1rem;
+            }
+            
+            .d-flex.gap-3 {
+                flex-direction: column;
+                gap: 1rem !important;
+            }
+        }
+    </style>
+</body>
+</html> 
