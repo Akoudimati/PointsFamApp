@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PointsFam - Wireframes</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .wireframe-section {
+            background: white;
+            border: 2px solid #ddd;
+            margin: 30px 0;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .wireframe-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #00050a;
+            border-bottom: 2px solid #000000;
+            padding-bottom: 10px;
+        }
+
+        .wireframe-box {
+            border: 1px solid #999;
+            padding: 15px;
+            margin: 10px 0;
+            background: #fafafa;
+            border-radius: 4px;
+        }
+
+        .nav-box {
+            background: #000000;
+            color: white;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand {
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .form-box {
+            border: 1px dashed #666;
+            padding: 20px;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .input-field {
+            border: 1px solid #999;
+            padding: 10px;
+            margin: 5px 0;
+            width: 100%;
+            max-width: 300px;
+            background: white;
+        }
+
+        .button {
+            background: #000305;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            background: white;
+            border-radius: 4px;
+        }
+
+        .sidebar {
+            width: 250px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            background: #f9f9f9;
+            float: left;
+            margin-right: 20px;
+        }
+
+        .chat-area {
+            border: 1px solid #ddd;
+            padding: 15px;
+            background: white;
+            min-height: 400px;
+            overflow: hidden;
+        }
+
+        .message-box {
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+            background: #f0f0f0;
+        }
+
+        .table-box {
+            border: 1px solid #ddd;
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table-box th,
+        .table-box td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .table-box th {
+            background: #f5f5f5;
+            font-weight: bold;
+        }
+
+        .clearfix::after {
+            content: "";
+            display: table;
+            clear: both;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .placeholder-text {
+            color: #666;
+            font-style: italic;
+        }
+
+        .stats-row {
+            display: flex;
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            flex: 1;
+            border: 1px solid #ddd;
+            padding: 20px;
+            text-align: center;
+            background: white;
+            border-radius: 4px;
+        }
+
+        .page-header {
+            text-align: center;
+            margin: 40px 0;
+            padding: 20px;
+            background: #000102;
+            color: white;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="page-header">
+            <h1>PointsFam Website Wireframes</h1>
+            <p>Basic structure and layout of main pages</p>
+        </div>
+
+        <!-- Login Page Wireframe -->
+        <div class="wireframe-section">
+            <h2 class="wireframe-title">1. Login Page</h2>
+            <div class="nav-box">
+                <div class="nav-brand">PointsFam</div>
+                <div class="nav-links">
+                    <span>[Home]</span>
+                    <span>[About]</span>
+                </div>
+            </div>
+            <div class="form-box">
+                <h3>Login Form</h3>
+                <div class="input-field placeholder-text">[Email Input Field]</div>
+                <div class="input-field placeholder-text">[Password Input Field]</div>
+                <button class="button">Login</button>
+                <p class="placeholder-text">Don't have an account? [Register Link]</p>
+            </div>
+        </div>
+
+        <!-- Register Page Wireframe -->
+        <div class="wireframe-section">
+            <h2 class="wireframe-title">2. Register Page</h2>
+            <div class="nav-box">
+                <div class="nav-brand">PointsFam</div>
+                <div class="nav-links">
+                    <span>[Home]</span>
+                    <span>[About]</span>
+                </div>
+            </div>
+            <div class="form-box">
+                <h3>Registration Form</h3>
+                <div class="input-field placeholder-text">[First Name]</div>
+                <div class="input-field placeholder-text">[Last Name]</div>
+                <div class="input-field placeholder-text">[Email]</div>
+                <div class="input-field placeholder-text">[Password]</div>
+                <div class="input-field placeholder-text">[Role: Parent/Child]</div>
+                <div class="input-field placeholder-text">[Family Code (optional)]</div>
+                <button class="button">Register</button>
+            </div>
+        </div>
+
+        <!-- Parent Dashboard Wireframe -->
+        <div class="wireframe-section">
+            <h2 class="wireframe-title">3. Parent Dashboard</h2>
+            <div class="nav-box">
+                <div class="nav-brand">PointsFam</div>
+                <div class="nav-links">
+                    <span>[Dashboard]</span>
+                    <span>[Messages]</span>
+                    <span>[Profile]</span>
+                    <span>[User Name]</span>
+                    <span>[Theme Toggle]</span>
+                    <span>[Logout]</span>
+                </div>
+            </div>
+            
+            <div class="stats-row">
+                <div class="stat-card">
+                    <h4>Familie Overzicht</h4>
+                    <p class="placeholder-text">Total Family Members: 4</p>
+                    <p class="placeholder-text">Active Tasks: 6</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Taken Beheer</h4>
+                    <p class="placeholder-text">Pending Approvals: 3</p>
+                    <button class="button">Manage Tasks</button>
+                </div>
+                <div class="stat-card">
+                    <h4>Punten Systeem</h4>
+                    <p class="placeholder-text">Total Points Awarded: 150</p>
+                    <button class="button">View Details</button>
+                </div>
+            </div>
+
+            <div class="wireframe-box">
+                <h3>Familie Leden</h3>
+                <table class="table-box">
+                    <thead>
+                        <tr>
+                            <th>[Name]</th>
+                            <th>[Role]</th>
+                            <th>[Points]</th>
+                            <th>[Status]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Emma Johnson</td>
+                            <td>Child</td>
+                            <td>85 points</td>
+                            <td>Active</td>
+                        </tr>
+                        <tr>
+                            <td>Liam Johnson</td>
+                            <td>Child</td>
+                            <td>62 points</td>
+                            <td>Active</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Child Dashboard Wireframe -->
+        <div class="wireframe-section">
+            <h2 class="wireframe-title">4. Child Dashboard</h2>
+            <div class="nav-box">
+                <div class="nav-brand">PointsFam</div>
+                <div class="nav-links">
+                    <span>[Dashboard]</span>
+                    <span>[Messages]</span>
+                    <span>[Profile]</span>
+                    <span>[Emma Johnson]</span>
+                    <span>[Theme Toggle]</span>
+                    <span>[Logout]</span>
+                </div>
+            </div>
+            
+            <div class="stats-row">
+                <div class="stat-card">
+                    <h4>Mijn Punten</h4>
+                    <p style="font-size: 24px; font-weight: bold; color: #0066cc;">85</p>
+                    <p class="placeholder-text">Total Points Earned</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Actieve Taken</h4>
+                    <p style="font-size: 24px; font-weight: bold; color: #28a745;">4</p>
+                    <p class="placeholder-text">Tasks to Complete</p>
+                </div>
+                <div class="stat-card">
+                    <h4>Beloningen</h4>
+                    <p style="font-size: 24px; font-weight: bold; color: #ffc107;">2</p>
+                    <p class="placeholder-text">Available Rewards</p>
+                </div>
+            </div>
+
+            <div class="wireframe-box">
+                <h3>Mijn Taken</h3>
+                <table class="table-box">
+                    <thead>
+                        <tr>
+                            <th>[Task]</th>
+                            <th>[Points]</th>
+                            <th>[Status]</th>
+                            <th>[Action]</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Clean bedroom</td>
+                            <td>10 points</td>
+                            <td>Pending</td>
+                            <td><button class="button">Complete</button></td>
+                        </tr>
+                        <tr>
+                            <td>Do homework</td>
+                            <td>15 points</td>
+                            <td>In Progress</td>
+                            <td><button class="button">Complete</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="wireframe-box">
+                <h3>Gezinsranglijst</h3>
+                <div class="placeholder-text">
+                    <p>1. Emma Johnson - 85 points</p>
+                    <p>2. Liam Johnson - 62 points</p>
+                    <p>3. Other family members...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages Page Wireframe -->
+        <div class="wireframe-section">
+            <h2 class="wireframe-title">5. Messages Page</h2>
+            <div class="nav-box">
+                <div class="nav-brand">PointsFam</div>
+                <div class="nav-links">
+                    <span>[Dashboard]</span>
+                    <span>[Messages]</span>
+                    <span>[Profile]</span>
+                    <span>[User Name]</span>
+                    <span>[Theme Toggle]</span>
+                    <span>[Logout]</span>
+                </div>
+            </div>
+            
+            <div class="wireframe-box">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3>Familie Berichten</h3>
+                    <button class="button">Add Chat</button>
+                </div>
+                
+                <div class="clearfix">
+                    <div class="sidebar">
+                        <h4>Familie Leden</h4>
+                        <div class="wireframe-box">
+                            <p>👤 Emma Johnson (Child)</p>
+                        </div>
+                        <div class="wireframe-box">
+                            <p>👤 Liam Johnson (Child)</p>
+                        </div>
+                        <div class="wireframe-box">
+                            <p>👤 Jane Johnson (Parent)</p>
+                        </div>
+                    </div>
+                    
+                    <div class="chat-area">
+                        <div class="wireframe-box" style="background: #0066cc; color: white; margin-bottom: 20px;">
+                            <h4>Chat with Emma Johnson</h4>
+                            <p class="placeholder-text">Child - Online</p>
+                        </div>
+                        
+                        <div class="message-box">
+                            <p><strong>Emma:</strong> Hi mom! I finished my homework.</p>
+                        </div>
+                        <div class="message-box" style="background: #e3f2fd; text-align: right;">
+                            <p><strong>You:</strong> Great job! I'll approve your task.</p>
+                        </div>
+                        
+                        <div class="form-box" style="margin-top: 20px;">
+                            <div class="input-field placeholder-text">[Type a message...]</div>
+                            <button class="button">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Page Wireframe -->
+        <div class="wireframe-section">
+            <h2 class="wireframe-title">6. Profile Page</h2>
+            <div class="nav-box">
+                <div class="nav-brand">PointsFam</div>
+                <div class="nav-links">
+                    <span>[Dashboard]</span>
+                    <span>[Messages]</span>
+                    <span>[Profile]</span>
+                    <span>[User Name]</span>
+                    <span>[Theme Toggle]</span>
+                    <span>[Logout]</span>
+                </div>
+            </div>
+            
+            <div class="wireframe-box">
+                <h3>Profile Settings</h3>
+                <div class="form-box">
+                    <div class="placeholder-text" style="margin-bottom: 20px;">[Profile Picture Upload]</div>
+                    <div class="input-field placeholder-text">[First Name]</div>
+                    <div class="input-field placeholder-text">[Last Name]</div>
+                    <div class="input-field placeholder-text">[Email]</div>
+                    <div class="input-field placeholder-text">[Current Password]</div>
+                    <div class="input-field placeholder-text">[New Password]</div>
+                    <button class="button">Update Profile</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- About Page Wireframe -->
+        <div class="wireframe-section">
+            <h2 class="wireframe-title">7. About Page</h2>
+            <div class="nav-box">
+                <div class="nav-brand">PointsFam</div>
+                <div class="nav-links">
+                    <span>[Home]</span>
+                    <span>[About]</span>
+                    <span>[Login]</span>
+                </div>
+            </div>
+            
+            <div class="wireframe-box text-center">
+                <h3>About PointsFam</h3>
+                <p class="placeholder-text">
+                    [Description about the family task management system]<br>
+                    [Features and benefits]<br>
+                    [How it works]<br>
+                    [Contact information]
+                </p>
+            </div>
+        </div>
+
+        <!-- 404 Error Page Wireframe -->
+        <div class="wireframe-section">
+            <h2 class="wireframe-title">8. 404 Error Page</h2>
+            <div class="nav-box">
+                <div class="nav-brand">PointsFam</div>
+                <div class="nav-links">
+                    <span>[Home]</span>
+                    <span>[About]</span>
+                </div>
+            </div>
+            
+            <div class="wireframe-box text-center">
+                <h3>404 - Page Not Found</h3>
+                <p class="placeholder-text">
+                    [Error message]<br>
+                    [Helpful navigation links]
+                </p>
+                <button class="button">Go Home</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

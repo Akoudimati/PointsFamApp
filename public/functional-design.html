@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PointsFam - Functionele Omschrijving</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #010205 0%, #1f1629 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+        }
+        
+        .design-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            margin: 2rem 0;
+            overflow: hidden;
+        }
+        
+        .feature-section {
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+        
+        .feature-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            border-left: 5px solid #007bff;
+        }
+        
+        .role-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .parent-card {
+            border-left: 5px solid #28a745;
+        }
+        
+        .child-card {
+            border-left: 5px solid #17a2b8;
+        }
+        
+        .tech-stack {
+            background: linear-gradient(135deg, #343a40, #495057);
+            color: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+        
+        .db-schema {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .api-endpoint {
+            background: #e9ecef;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            margin: 0.5rem 0;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        
+        .security-badge {
+            background: #dc3545;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        
+        .feature-badge {
+            background: #007bff;
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="text-center text-white mb-4">
+                    <h1 class="display-4 fw-bold">
+                        <i class="fas fa-cogs me-3"></i>
+                        PointsFam - Functionele Omschrijving
+                    </h1>
+                    <p class="lead">Gedetailleerde beschrijving van alle functionaliteiten van de familie punten app</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- App Overview -->
+        <div class="design-container">
+            <div class="container p-4">
+                <h2 class="text-center mb-4">
+                    <i class="fas fa-info-circle me-2"></i>
+                    App Overzicht
+                </h2>
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="feature-card">
+                            <h4><i class="fas fa-star me-2"></i>Wat is PointsFam?</h4>
+                            <p class="lead">PointsFam is een web-gebaseerde familie management applicatie waarbij kinderen punten kunnen verdienen door het uitvoeren van huishoudelijke taken en het vertonen van goed gedrag.</p>
+                            
+                            <h5><i class="fas fa-bullseye me-2"></i>Hoofddoelstellingen:</h5>
+                            <ul>
+                                <li><strong>Motivatie:</strong> Kinderen motiveren om taken uit te voeren</li>
+                                <li><strong>Structuur:</strong> Duidelijke structuur in huishoudelijke taken</li>
+                                <li><strong>Beloning:</strong> Punten systeem met inwisselbare beloningen</li>
+                                <li><strong>Communicatie:</strong> Verbeteren van familie communicatie</li>
+                                <li><strong>Verantwoordelijkheid:</strong> Kinderen leren verantwoordelijkheid nemen</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="feature-card">
+                            <h5><i class="fas fa-users me-2"></i>Doelgroep</h5>
+                            <ul class="list-unstyled">
+                                <li><i class="fas fa-family text-primary me-2"></i><strong>Families</strong> met kinderen</li>
+                                <li><i class="fas fa-child text-info me-2"></i><strong>Kinderen</strong> 6-16 jaar</li>
+                                <li><i class="fas fa-user-tie text-success me-2"></i><strong>Ouders</strong> die structuur willen</li>
+                                <li><i class="fas fa-home text-warning me-2"></i><strong>Huishoudens</strong> met taken</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Roles -->
+        <div class="design-container">
+            <div class="container p-4">
+                <h2 class="text-center mb-4">
+                    <i class="fas fa-user-friends me-2"></i>
+                    Gebruikersrollen & Functionaliteiten
+                </h2>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="role-card parent-card">
+                            <h4><i class="fas fa-user-tie me-2"></i>Ouder Rol</h4>
+                            <p><strong>Beheerder van het familie systeem</strong></p>
+                            
+                            <h6><i class="fas fa-tasks me-2"></i>Taken Beheer:</h6>
+                            <ul>
+                                <li>Nieuwe taken aanmaken</li>
+                                <li>Taken toewijzen aan kinderen</li>
+                                <li>Punten waarde bepalen per taak</li>
+                                <li>Taken bewerken en verwijderen</li>
+                                <li>Standaard taken bibliotheek beheren</li>
+                            </ul>
+                            
+                            <h6><i class="fas fa-check-circle me-2"></i>Goedkeuring Proces:</h6>
+                            <ul>
+                                <li>Voltooide taken beoordelen</li>
+                                <li>Punten goedkeuren of afwijzen</li>
+                                <li>Feedback geven bij afwijzing</li>
+                                <li>Bonus punten toekennen</li>
+                            </ul>
+                            
+                            <h6><i class="fas fa-gift me-2"></i>Beloningen:</h6>
+                            <ul>
+                                <li>Beloningen lijst beheren</li>
+                                <li>Punten waarde van beloningen instellen</li>
+                                <li>Beloningen goedkeuren bij inwisseling</li>
+                            </ul>
+                            
+                            <h6><i class="fas fa-chart-line me-2"></i>Overzicht & Monitoring:</h6>
+                            <ul>
+                                <li>Dashboard met familie overzicht</li>
+                                <li>Punten geschiedenis per kind</li>
+                                <li>Taken statistieken</li>
+                                <li>Familie ranglijst beheren</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="role-card child-card">
+                            <h4><i class="fas fa-child me-2"></i>Kind Rol</h4>
+                            <p><strong>Actieve deelnemer aan het punten systeem</strong></p>
+                            
+                            <h6><i class="fas fa-list me-2"></i>Taken Uitvoeren:</h6>
+                            <ul>
+                                <li>Toegewezen taken bekijken</li>
+                                <li>Taken accepteren of weigeren</li>
+                                <li>Taken markeren als voltooid</li>
+                                <li>Voortgang bijhouden</li>
+                            </ul>
+                            
+                            <h6><i class="fas fa-star me-2"></i>Punten Systeem:</h6>
+                            <ul>
+                                <li>Huidige punten saldo bekijken</li>
+                                <li>Punten geschiedenis inzien</li>
+                                <li>Verdiende punten per taak zien</li>
+                                <li>Punten statistieken</li>
+                            </ul>
+                            
+                            <h6><i class="fas fa-shopping-cart me-2"></i>Beloningen:</h6>
+                            <ul>
+                                <li>Beschikbare beloningen bekijken</li>
+                                <li>Punten inwisselen voor beloningen</li>
+                                <li>Beloningen geschiedenis</li>
+                                <li>Spaardoelen instellen</li>
+                            </ul>
+                            
+                            <h6><i class="fas fa-trophy me-2"></i>Competitie:</h6>
+                            <ul>
+                                <li>Familie ranglijst bekijken</li>
+                                <li>Eigen positie zien</li>
+                                <li>Prestaties vergelijken</li>
+                                <li>Motivatie door competitie</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Core Features -->
+        <div class="design-container">
+            <div class="container p-4">
+                <h2 class="text-center mb-4">
+                    <i class="fas fa-cog me-2"></i>
+                    Kern Functionaliteiten
+                </h2>
+                
+                <div class="feature-section">
+                    <h3><i class="fas fa-tasks me-2"></i>1. Taken Management Systeem</h3>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <h5>Taken Aanmaken</h5>
+                                <ul>
+                                    <li>Aangepaste taken maken</li>
+                                    <li>Standaard taken bibliotheek</li>
+                                    <li>Punten waarde instellen</li>
+                                    <li>Beschrijving toevoegen</li>
+                                    <li>Deadline instellen (optioneel)</li>
+                                </ul>
+                                <div class="mt-2">
+                                    <span class="feature-badge">Flexibel</span>
+                                    <span class="feature-badge">Herbruikbaar</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <h5>Taken Toewijzing</h5>
+                                <ul>
+                                    <li>Individuele toewijzing</li>
+                                    <li>Groeps toewijzing</li>
+                                    <li>Automatische herhaling</li>
+                                    <li>Prioriteit instellen</li>
+                                    <li>Notificaties versturen</li>
+                                </ul>
+                                <div class="mt-2">
+                                    <span class="feature-badge">Automatisch</span>
+                                    <span class="feature-badge">Flexibel</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="feature-section">
+                    <h3><i class="fas fa-star me-2"></i>2. Punten Systeem</h3>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="feature-card">
+                                <h5>Punten Verdienen</h5>
+                                <ul>
+                                    <li>Taken voltooien</li>
+                                    <li>Bonus punten</li>
+                                    <li>Goed gedrag</li>
+                                    <li>Speciale prestaties</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="feature-card">
+                                <h5>Punten Beheer</h5>
+                                <ul>
+                                    <li>Real-time updates</li>
+                                    <li>Geschiedenis bijhouden</li>
+                                    <li>Statistieken genereren</li>
+                                    <li>Backup & restore</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="feature-card">
+                                <h5>Punten Uitgeven</h5>
+                                <ul>
+                                    <li>Beloningen kopen</li>
+                                    <li>Spaardoelen stellen</li>
+                                    <li>Transactie geschiedenis</li>
+                                    <li>Restituties</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="feature-section">
+                    <h3><i class="fas fa-gift me-2"></i>3. Beloningen Systeem</h3>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <h5>Beloningen Categorieën</h5>
+                                <ul>
+                                    <li><strong>Materieel:</strong> Speelgoed, kleding, gadgets</li>
+                                    <li><strong>Ervaringen:</strong> Uitjes, activiteiten, films</li>
+                                    <li><strong>Privileges:</strong> Later opblijven, vriendjes uitnodigen</li>
+                                    <li><strong>Geld:</strong> Zakgeld, sparen</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <h5>Beloningen Beheer</h5>
+                                <ul>
+                                    <li>Aangepaste beloningen maken</li>
+                                    <li>Punten kosten instellen</li>
+                                    <li>Beschikbaarheid beheren</li>
+                                    <li>Seizoensgebonden beloningen</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="feature-section">
+                    <h3><i class="fas fa-comments me-2"></i>4. Communicatie Systeem</h3>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="feature-card">
+                                <h5>Directe Berichten</h5>
+                                <ul>
+                                    <li>1-op-1 gesprekken</li>
+                                    <li>Real-time messaging</li>
+                                    <li>Bericht geschiedenis</li>
+                                    <li>Gelezen status</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="feature-card">
+                                <h5>Groepsgesprekken</h5>
+                                <ul>
+                                    <li>Familie groep chat</li>
+                                    <li>Taken gerelateerde berichten</li>
+                                    <li>Aankondigingen</li>
+                                    <li>Groep beheer</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="feature-card">
+                                <h5>Notificaties</h5>
+                                <ul>
+                                    <li>Nieuwe taken</li>
+                                    <li>Goedkeuring updates</li>
+                                    <li>Berichten alerts</li>
+                                    <li>Systeem meldingen</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Technical Architecture -->
+        <div class="design-container">
+            <div class="container p-4">
+                <h2 class="text-center mb-4">
+                    <i class="fas fa-server me-2"></i>
+                    Technische Architectuur
+                </h2>
+                
+                <div class="tech-stack">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h4><i class="fas fa-code me-2"></i>Backend Stack</h4>
+                            <ul>
+                                <li><strong>Runtime:</strong> Node.js 18+</li>
+                                <li><strong>Framework:</strong> Express.js</li>
+                                <li><strong>Database:</strong> MySQL (Aiven Cloud)</li>
+                                <li><strong>Authentication:</strong> Express-session</li>
+                                <li><strong>File Upload:</strong> Multer</li>
+                                <li><strong>Security:</strong> Helmet, CORS</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h4><i class="fas fa-desktop me-2"></i>Frontend Stack</h4>
+                            <ul>
+                                <li><strong>Markup:</strong> HTML5</li>
+                                <li><strong>Styling:</strong> CSS3 + Bootstrap 5</li>
+                                <li><strong>Scripting:</strong> Vanilla JavaScript</li>
+                                <li><strong>Icons:</strong> Font Awesome 6</li>
+                                <li><strong>Responsive:</strong> Mobile-first design</li>
+                                <li><strong>PWA:</strong> Service Worker ready</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="feature-section">
+                    <h3><i class="fas fa-database me-2"></i>Database Schema</h3>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="db-schema">
+                                <h6>Gebruikers Tabellen:</h6>
+                                <div class="api-endpoint">users (id, username, password, firstName, lastName, role, familyId, points, profile_image)</div>
+                                <div class="api-endpoint">families (id, name, created_at)</div>
+                                <div class="api-endpoint">family_members (family_id, user_id, role, joined_at)</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="db-schema">
+                                <h6>Taken Tabellen:</h6>
+                                <div class="api-endpoint">tasks (id, name, description, points, category, family_id)</div>
+                                <div class="api-endpoint">task_assignments (id, task_id, user_id, assigned_by, status, points_awarded)</div>
+                                <div class="api-endpoint">task_completions (id, assignment_id, completed_at, approved_by)</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="db-schema">
+                                <h6>Beloningen Tabellen:</h6>
+                                <div class="api-endpoint">rewards (id, name, description, points_required, category, family_id)</div>
+                                <div class="api-endpoint">reward_redemptions (id, reward_id, user_id, points_spent, redeemed_at)</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="db-schema">
+                                <h6>Communicatie Tabellen:</h6>
+                                <div class="api-endpoint">conversations (id, title, type, participants, family_id)</div>
+                                <div class="api-endpoint">messages (id, conversation_id, sender_id, content, sent_at)</div>
+                                <div class="api-endpoint">direct_messages (id, sender_id, receiver_id, content, sent_at)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="feature-section">
+                    <h3><i class="fas fa-link me-2"></i>API Endpoints</h3>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <h5>Authenticatie</h5>
+                                <div class="api-endpoint">POST /api/login</div>
+                                <div class="api-endpoint">POST /api/register</div>
+                                <div class="api-endpoint">POST /api/logout</div>
+                                <div class="api-endpoint">GET /api/user</div>
+                            </div>
+                            <div class="feature-card">
+                                <h5>Taken</h5>
+                                <div class="api-endpoint">GET /api/tasks</div>
+                                <div class="api-endpoint">POST /api/tasks</div>
+                                <div class="api-endpoint">PUT /api/tasks/:id</div>
+                                <div class="api-endpoint">DELETE /api/tasks/:id</div>
+                                <div class="api-endpoint">POST /api/tasks/:id/assign</div>
+                                <div class="api-endpoint">POST /api/tasks/:id/complete</div>
+                                <div class="api-endpoint">POST /api/tasks/:id/approve</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <h5>Familie & Gebruikers</h5>
+                                <div class="api-endpoint">GET /api/family/members</div>
+                                <div class="api-endpoint">GET /api/dashboard</div>
+                                <div class="api-endpoint">POST /api/users/:id/points</div>
+                                <div class="api-endpoint">GET /api/users/:id/history</div>
+                            </div>
+                            <div class="feature-card">
+                                <h5>Berichten</h5>
+                                <div class="api-endpoint">GET /api/conversations</div>
+                                <div class="api-endpoint">POST /api/conversations</div>
+                                <div class="api-endpoint">GET /api/conversations/:id/messages</div>
+                                <div class="api-endpoint">POST /api/conversations/:id/messages</div>
+                                <div class="api-endpoint">GET /api/direct-messages/:userId</div>
+                                <div class="api-endpoint">POST /api/direct-messages</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Security & Performance -->
+        <div class="design-container">
+            <div class="container p-4">
+                <h2 class="text-center mb-4">
+                    <i class="fas fa-shield-alt me-2"></i>
+                    Beveiliging & Performance
+                </h2>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="feature-card">
+                            <h5><i class="fas fa-lock me-2"></i>Beveiligingsmaatregelen</h5>
+                            <ul>
+                                <li><span class="security-badge">Authenticatie</span> Session-based login</li>
+                                <li><span class="security-badge">Autorisatie</span> Role-based access control</li>
+                                <li><span class="security-badge">Data Isolatie</span> Familie-gebaseerde data scheiding</li>
+                                <li><span class="security-badge">Input Validatie</span> Server-side validatie</li>
+                                <li><span class="security-badge">SQL Injection</span> Prepared statements</li>
+                                <li><span class="security-badge">XSS Preventie</span> Input sanitization</li>
+                                <li><span class="security-badge">CSRF</span> Token-based protection</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="feature-card">
+                            <h5><i class="fas fa-tachometer-alt me-2"></i>Performance Optimalisaties</h5>
+                            <ul>
+                                <li><strong>Database:</strong> Geoptimaliseerde queries</li>
+                                <li><strong>Caching:</strong> Session & static content caching</li>
+                                <li><strong>Images:</strong> Gecomprimeerde afbeeldingen</li>
+                                <li><strong>CSS/JS:</strong> Minified assets</li>
+                                <li><strong>Lazy Loading:</strong> On-demand content loading</li>
+                                <li><strong>CDN:</strong> Bootstrap & Font Awesome via CDN</li>
+                                <li><strong>Responsive:</strong> Mobile-first optimalisatie</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Future Enhancements -->
+        <div class="design-container">
+            <div class="container p-4">
+                <h2 class="text-center mb-4">
+                    <i class="fas fa-rocket me-2"></i>
+                    Toekomstige Uitbreidingen
+                </h2>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="feature-card">
+                            <h5><i class="fas fa-mobile-alt me-2"></i>Mobile App</h5>
+                            <ul>
+                                <li>Native iOS/Android app</li>
+                                <li>Push notificaties</li>
+                                <li>Offline functionaliteit</li>
+                                <li>Camera integratie</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="feature-card">
+                            <h5><i class="fas fa-chart-bar me-2"></i>Analytics</h5>
+                            <ul>
+                                <li>Gedetailleerde statistieken</li>
+                                <li>Voortgang tracking</li>
+                                <li>Prestatie rapporten</li>
+                                <li>Trends analyse</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="feature-card">
+                            <h5><i class="fas fa-users me-2"></i>Social Features</h5>
+                            <ul>
+                                <li>Familie netwerk</li>
+                                <li>Prestaties delen</li>
+                                <li>Leaderboards</li>
+                                <li>Badges systeem</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center text-white mt-5">
+            <p class="lead">
+                <i class="fas fa-heart text-danger me-2"></i>
+                Gemaakt door <strong>Abdullah Koudimati</strong> voor <strong>Samen ICT</strong>
+            </p>
+            <p>© 2025 PointsFam - Familie Taken Management Systeem</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html> 

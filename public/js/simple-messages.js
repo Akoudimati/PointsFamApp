@@ -97,20 +97,18 @@ class SimpleFamilyMessaging {
             
             return `
                 <div class="family-member-item" data-user-id="${member.id}" onclick="simpleMessaging.selectFamilyMember(${member.id})">
-                    <div class="d-flex align-items-center">
-                        <div class="member-avatar me-3" style="background-color: ${this.getAvatarColor(member.first_name)}">
-                            ${member.first_name.charAt(0).toUpperCase()}
+                    <div class="member-avatar" style="background-color: ${this.getAvatarColor(member.first_name)}">
+                        ${member.first_name.charAt(0).toUpperCase()}
+                    </div>
+                    <div class="member-info">
+                        <div class="member-name">${this.escapeHtml(member.first_name)} ${this.escapeHtml(member.last_name)}</div>
+                        <div class="member-role">
+                            <i class="fas fa-${isChild ? 'child' : 'user'} me-1"></i>
+                            ${isChild ? 'Kind' : 'Ouder'}
                         </div>
-                        <div class="flex-grow-1">
-                            <div class="member-name">${this.escapeHtml(member.first_name)} ${this.escapeHtml(member.last_name)}</div>
-                            <div class="member-role">
-                                <i class="fas fa-${isChild ? 'child' : 'user'} me-1"></i>
-                                ${isChild ? 'Kind' : 'Ouder'}
-                            </div>
-                        </div>
-                        <div class="member-status">
-                            <i class="fas fa-circle text-success" title="Online"></i>
-                        </div>
+                    </div>
+                    <div class="member-status">
+                        <i class="fas fa-circle text-success" title="Online"></i>
                     </div>
                 </div>
             `;
@@ -157,11 +155,8 @@ class SimpleFamilyMessaging {
         }
         
         if (chatAvatar) {
-            chatAvatar.innerHTML = `
-                <div class="chat-avatar-circle" style="background-color: ${this.getAvatarColor(this.currentChatUser.first_name)}">
-                    ${this.currentChatUser.first_name.charAt(0).toUpperCase()}
-                </div>
-            `;
+            chatAvatar.style.backgroundColor = this.getAvatarColor(this.currentChatUser.first_name);
+            chatAvatar.textContent = this.currentChatUser.first_name.charAt(0).toUpperCase();
         }
     }
 

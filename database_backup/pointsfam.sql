@@ -1,5 +1,5 @@
 -- PointsFam Database Backup
--- Created: 2025-07-08T00:42:11.283Z
+-- Created: 2025-07-08T02:31:45.307Z
 -- ========================================
 
 -- Table: users
@@ -23,18 +23,18 @@ INSERT INTO families (id, name, created_at) VALUES (3, 'The Smith Family', '2025
 
 -- Table: conversations
 DELETE FROM conversations;
-INSERT INTO conversations (id, type, title, description, family_id, created_by, created_at, updated_at) VALUES (1, 'family', 'Familie Johnson Chat', 'Algemene familie chat voor The Johnson Family', 1, 1, '2025-07-07 08:00:00', '2025-07-07 10:30:00');
 INSERT INTO conversations (id, type, title, description, family_id, created_by, created_at, updated_at) VALUES (2, 'family', 'Familie van der Berg', 'Familie gesprek voor dagelijkse zaken', 2, 5, '2025-07-07 07:00:00', '2025-07-07 09:45:00');
 INSERT INTO conversations (id, type, title, description, family_id, created_by, created_at, updated_at) VALUES (3, 'direct', 'John & Emma', 'Direct gesprek tussen vader en dochter', NULL, 1, '2025-07-07 06:00:00', '2025-07-07 08:15:00');
 INSERT INTO conversations (id, type, title, description, family_id, created_by, created_at, updated_at) VALUES (4, 'group', 'Ouders Support Groep', 'Ondersteuning voor ouders', NULL, 1, '2025-07-07 05:00:00', '2025-07-07 12:20:00');
 INSERT INTO conversations (id, type, title, description, family_id, created_by, created_at, updated_at) VALUES (5, 'cross_family', 'Cross-Familie Chat', 'Gesprek tussen verschillende families', NULL, 1, '2025-07-07 04:00:00', '2025-07-07 11:10:00');
+INSERT INTO conversations (id, type, title, description, family_id, created_by, created_at, updated_at) VALUES (9, 'direct', NULL, NULL, NULL, 1, '2025-07-07 22:50:40', '2025-07-07 22:50:40');
+INSERT INTO conversations (id, type, title, description, family_id, created_by, created_at, updated_at) VALUES (13, 'family', 'Familie Chat', NULL, 1, 1, '2025-07-07 23:05:14', '2025-07-07 23:05:14');
+INSERT INTO conversations (id, type, title, description, family_id, created_by, created_at, updated_at) VALUES (14, 'direct', 'Test Direct Chat', NULL, NULL, 1, '2025-07-07 23:22:28', '2025-07-07 23:22:28');
+INSERT INTO conversations (id, type, title, description, family_id, created_by, created_at, updated_at) VALUES (15, 'direct', 'Test Direct Chat', NULL, NULL, 1, '2025-07-07 23:23:14', '2025-07-07 23:23:14');
+INSERT INTO conversations (id, type, title, description, family_id, created_by, created_at, updated_at) VALUES (16, 'family', 'emma', NULL, 1, 1, '2025-07-07 23:24:28', '2025-07-07 23:24:28');
 
 -- Table: conversation_participants
 DELETE FROM conversation_participants;
-INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (1, 1, 'admin', '2025-07-07 08:00:00', 1);
-INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (1, 2, 'admin', '2025-07-07 08:00:00', 1);
-INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (1, 3, 'member', '2025-07-07 08:00:00', 1);
-INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (1, 4, 'member', '2025-07-07 08:00:00', 1);
 INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (2, 5, 'admin', '2025-07-07 07:00:00', 1);
 INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (2, 6, 'admin', '2025-07-07 07:00:00', 1);
 INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (2, 7, 'member', '2025-07-07 07:00:00', 1);
@@ -48,16 +48,26 @@ INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at
 INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (5, 1, 'admin', '2025-07-07 04:00:00', 1);
 INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (5, 5, 'member', '2025-07-07 04:00:00', 1);
 INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (5, 9, 'member', '2025-07-07 04:00:00', 1);
+INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (9, 1, 'member', '2025-07-07 22:50:40', 1);
+INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (9, 2, 'member', '2025-07-07 22:50:40', 1);
+INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (13, 1, 'member', '2025-07-07 23:05:14', 1);
+INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (13, 2, 'member', '2025-07-07 23:05:14', 1);
+INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (13, 3, 'member', '2025-07-07 23:05:14', 1);
+INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (13, 4, 'member', '2025-07-07 23:05:14', 1);
+INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (14, 1, 'admin', '2025-07-07 23:22:29', 1);
+INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (14, 2, 'member', '2025-07-07 23:22:29', 1);
+INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (15, 1, 'admin', '2025-07-07 23:23:14', 1);
+INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (15, 2, 'member', '2025-07-07 23:23:14', 1);
+INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (16, 1, 'admin', '2025-07-07 23:24:28', 1);
+INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (16, 2, 'admin', '2025-07-07 23:24:28', 1);
+INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (16, 3, 'member', '2025-07-07 23:24:28', 1);
+INSERT INTO conversation_participants (conversation_id, user_id, role, joined_at, is_active) VALUES (16, 4, 'member', '2025-07-07 23:24:28', 1);
 
 -- Table: messages
 DELETE FROM messages;
-INSERT INTO messages (id, conversation_id, sender_id, message_type, content, file_path, file_name, file_size, reply_to_message_id, is_deleted, is_edited, edited_at, created_at) VALUES (1, 1, 1, 'text', 'Hallo allemaal! Welkom in onze familie chat 👋', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 08:00:00');
-INSERT INTO messages (id, conversation_id, sender_id, message_type, content, file_path, file_name, file_size, reply_to_message_id, is_deleted, is_edited, edited_at, created_at) VALUES (2, 1, 3, 'text', 'Hoi papa! Leuk dat we nu kunnen chatten 😊', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 08:05:00');
-INSERT INTO messages (id, conversation_id, sender_id, message_type, content, file_path, file_name, file_size, reply_to_message_id, is_deleted, is_edited, edited_at, created_at) VALUES (3, 1, 2, 'text', 'Dit is heel handig om afspraken te maken!', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 08:10:00');
-INSERT INTO messages (id, conversation_id, sender_id, message_type, content, file_path, file_name, file_size, reply_to_message_id, is_deleted, is_edited, edited_at, created_at) VALUES (4, 1, 4, 'text', 'Wanneer eten we vanavond?', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 10:30:00');
 INSERT INTO messages (id, conversation_id, sender_id, message_type, content, file_path, file_name, file_size, reply_to_message_id, is_deleted, is_edited, edited_at, created_at) VALUES (5, 2, 5, 'text', 'Goedemorgen familie! Hoe gaat het met iedereen?', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 07:00:00');
 INSERT INTO messages (id, conversation_id, sender_id, message_type, content, file_path, file_name, file_size, reply_to_message_id, is_deleted, is_edited, edited_at, created_at) VALUES (6, 2, 7, 'text', 'Goed papa! Ik ga vandaag mijn kamer opruimen 🧹', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 07:15:00');
-INSERT INTO messages (id, conversation_id, sender_id, message_type, content, file_path, file_name, file_size, reply_to_message_id, is_deleted, is_edited, edited_at, created_at) VALUES (7, 2, 6, 'text', 'Vergeet je huiswerk niet Lisa!', NULL, NULL, NULL, 3, 0, 0, NULL, '2025-07-07 07:30:00');
+INSERT INTO messages (id, conversation_id, sender_id, message_type, content, file_path, file_name, file_size, reply_to_message_id, is_deleted, is_edited, edited_at, created_at) VALUES (7, 2, 6, 'text', 'Vergeet je huiswerk niet Lisa!', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 07:30:00');
 INSERT INTO messages (id, conversation_id, sender_id, message_type, content, file_path, file_name, file_size, reply_to_message_id, is_deleted, is_edited, edited_at, created_at) VALUES (8, 2, 8, 'text', 'Mam, mag ik vrienden uitnodigen dit weekend?', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 09:45:00');
 INSERT INTO messages (id, conversation_id, sender_id, message_type, content, file_path, file_name, file_size, reply_to_message_id, is_deleted, is_edited, edited_at, created_at) VALUES (9, 3, 1, 'text', 'Hoi Emma, hoe ging het op school vandaag?', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 06:00:00');
 INSERT INTO messages (id, conversation_id, sender_id, message_type, content, file_path, file_name, file_size, reply_to_message_id, is_deleted, is_edited, edited_at, created_at) VALUES (10, 3, 3, 'text', 'Heel goed papa! Ik heb een 8 gehaald voor wiskunde! 🎉', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 06:15:00');
@@ -68,24 +78,11 @@ INSERT INTO messages (id, conversation_id, sender_id, message_type, content, fil
 INSERT INTO messages (id, conversation_id, sender_id, message_type, content, file_path, file_name, file_size, reply_to_message_id, is_deleted, is_edited, edited_at, created_at) VALUES (15, 5, 1, 'text', 'Hallo families! Zullen we een gezamenlijke activiteit organiseren?', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 04:00:00');
 INSERT INTO messages (id, conversation_id, sender_id, message_type, content, file_path, file_name, file_size, reply_to_message_id, is_deleted, is_edited, edited_at, created_at) VALUES (16, 5, 5, 'text', 'Goed idee! Misschien een picknick in het park?', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 06:30:00');
 INSERT INTO messages (id, conversation_id, sender_id, message_type, content, file_path, file_name, file_size, reply_to_message_id, is_deleted, is_edited, edited_at, created_at) VALUES (17, 5, 9, 'text', 'Dat klinkt leuk! Wanneer hadden jullie gedacht?', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 11:10:00');
-INSERT INTO messages (id, conversation_id, sender_id, message_type, content, file_path, file_name, file_size, reply_to_message_id, is_deleted, is_edited, edited_at, created_at) VALUES (18, 1, 1, 'text', 'Test message from automated test', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 22:19:30');
-INSERT INTO messages (id, conversation_id, sender_id, message_type, content, file_path, file_name, file_size, reply_to_message_id, is_deleted, is_edited, edited_at, created_at) VALUES (19, 1, 1, 'text', 'Test message from automated test', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 22:26:00');
-INSERT INTO messages (id, conversation_id, sender_id, message_type, content, file_path, file_name, file_size, reply_to_message_id, is_deleted, is_edited, edited_at, created_at) VALUES (20, 1, 1, 'text', 'Hello family! This is a test message in existing chat.', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 22:39:14');
+INSERT INTO messages (id, conversation_id, sender_id, message_type, content, file_path, file_name, file_size, reply_to_message_id, is_deleted, is_edited, edited_at, created_at) VALUES (22, 4, 1, 'text', 'Test message sent at 2025-07-08T00:45:58.920Z', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 22:46:06');
+INSERT INTO messages (id, conversation_id, sender_id, message_type, content, file_path, file_name, file_size, reply_to_message_id, is_deleted, is_edited, edited_at, created_at) VALUES (23, 4, 1, 'text', 'Test message sent at 2025-07-08T00:46:32.769Z', NULL, NULL, NULL, NULL, 0, 0, NULL, '2025-07-07 22:46:39');
 
 -- Table: message_status
 DELETE FROM message_status;
-INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (1, 1, 2, 'read', '2025-07-07 08:01:00');
-INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (2, 1, 3, 'read', '2025-07-07 08:02:00');
-INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (3, 1, 4, 'read', '2025-07-07 08:03:00');
-INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (4, 2, 1, 'read', '2025-07-07 22:41:02');
-INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (5, 2, 2, 'read', '2025-07-07 08:07:00');
-INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (6, 2, 4, 'read', '2025-07-07 08:08:00');
-INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (7, 3, 1, 'read', '2025-07-07 22:41:02');
-INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (8, 3, 3, 'read', '2025-07-07 08:12:00');
-INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (9, 3, 4, 'read', '2025-07-07 08:13:00');
-INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (10, 4, 1, 'read', '2025-07-07 22:41:02');
-INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (11, 4, 2, 'read', '2025-07-07 10:32:00');
-INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (12, 4, 3, 'read', '2025-07-07 10:33:00');
 INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (13, 9, 3, 'read', '2025-07-07 06:01:00');
 INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (14, 10, 1, 'read', '2025-07-07 06:16:00');
 INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (15, 11, 3, 'read', '2025-07-07 08:16:00');
@@ -98,10 +95,6 @@ INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (
 INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (22, 15, 9, 'read', '2025-07-07 04:02:00');
 INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (23, 16, 1, 'read', '2025-07-07 06:31:00');
 INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (24, 16, 9, 'read', '2025-07-07 06:32:00');
-INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (25, 1, 1, 'read', '2025-07-07 22:41:02');
-INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (37, 18, 1, 'read', '2025-07-07 22:41:02');
-INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (88, 19, 1, 'read', '2025-07-07 22:41:02');
-INSERT INTO message_status (id, message_id, user_id, status, status_at) VALUES (134, 20, 1, 'read', '2025-07-07 22:41:02');
 
 -- Table: tasks
 DELETE FROM tasks;
@@ -109,6 +102,13 @@ INSERT INTO tasks (id, family_id, name, description, points, category, is_custom
 INSERT INTO tasks (id, family_id, name, description, points, category, is_custom, is_active, created_by, created_at) VALUES (2, 1, 'Kamer opruimen', 'Eigen kamer netjes maken en speelgoed opruimen', 15, 'slaapkamer', 0, 1, 1, '2025-07-04 17:58:11');
 INSERT INTO tasks (id, family_id, name, description, points, category, is_custom, is_active, created_by, created_at) VALUES (3, 1, 'Hond uitlaten', 'De hond een wandeling geven van minimaal 15 minuten', 20, 'huisdieren', 0, 1, 1, '2025-07-04 17:58:11');
 INSERT INTO tasks (id, family_id, name, description, points, category, is_custom, is_active, created_by, created_at) VALUES (4, 1, 'Huiswerk maken', 'Alle huiswerk voor school afmaken', 25, 'school', 0, 1, 1, '2025-07-04 17:58:11');
+
+-- Table: task_assignments
+DELETE FROM task_assignments;
+INSERT INTO task_assignments (id, task_id, assigned_to, assigned_by, status, completed_at, approved_at, approved_by, points_awarded, notes, created_at) VALUES (1, 4, 3, 1, 'pending', NULL, NULL, NULL, NULL, NULL, '2025-07-07 22:48:52');
+INSERT INTO task_assignments (id, task_id, assigned_to, assigned_by, status, completed_at, approved_at, approved_by, points_awarded, notes, created_at) VALUES (2, 4, 4, 1, 'pending', NULL, NULL, NULL, NULL, NULL, '2025-07-07 22:48:52');
+INSERT INTO task_assignments (id, task_id, assigned_to, assigned_by, status, completed_at, approved_at, approved_by, points_awarded, notes, created_at) VALUES (3, 3, 3, 1, 'pending', NULL, NULL, NULL, NULL, NULL, '2025-07-07 22:49:04');
+INSERT INTO task_assignments (id, task_id, assigned_to, assigned_by, status, completed_at, approved_at, approved_by, points_awarded, notes, created_at) VALUES (4, 3, 4, 1, 'pending', NULL, NULL, NULL, NULL, NULL, '2025-07-07 22:49:04');
 
 -- Table: rewards
 DELETE FROM rewards;
